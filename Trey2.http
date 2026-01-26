@@ -1,0 +1,6 @@
+@Trey2_HostAddress = http://localhost:5120
+
+GET {{Trey2_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
