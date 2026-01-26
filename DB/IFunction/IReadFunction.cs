@@ -44,5 +44,40 @@ namespace Trey2.DB.IFunction
             }
 
         }
+
+        public static async Task<(ulong, bool)> getAuthEmail(AuthRequest request, IDatabaseFactory factory)
+        {
+            var database = factory.Create();
+            using (var connection = database.CreateNewConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"SELECT user_id, user_email, password FROM `user` WHERE user_email = @login;";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@login", request.Login);
+                    var reader = await command.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        bool valid = PasswordHasher.Verify(request.Password, reader[2].ToString()!);
+                        if (valid /*reader[2].ToString() == password*/)
+                        {
+                            ulong id = Convert.ToUInt64(reader[0].ToString()!);
+                            await connection.CloseAsync();
+                            return (id, true);
+                        }
+                        else
+                        {
+                            await connection.CloseAsync();
+                            return (0, true);
+                        }
+                    }
+                    else
+                    {
+                        await connection.CloseAsync();
+                        return (0, false);
+                    }
+                }
+            }
+        }
     }
 }

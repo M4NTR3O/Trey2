@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System.ComponentModel.DataAnnotations;
 using Trey2.DB;
 using Trey2.DB.IFunction;
+using Trey2.Models;
 
 namespace Trey2.Controllers
 {
@@ -55,6 +58,44 @@ namespace Trey2.Controllers
             {
                 return new ObjectResult(user);
             }
+        }
+
+        [HttpPost]
+        [Route("auth")]
+        async public Task<ActionResult> Auth(AuthRequest request, IDatabaseFactory factory)
+        {
+            var validationContext = new ValidationContext(request);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(request, validationContext, validationResults, true);
+            if (isValid)
+            {
+                try
+                {
+                    (ulong id, bool read) = await IReadFunction.getAuthEmail(request, factory);
+                    if (id == 0 && (!read))
+                    {
+                        return new BadRequestObjectResult("Нет пользователя");
+                    }
+                    else if (id == 0)
+                    {
+                        return new BadRequestObjectResult("Неверный пароль");
+                    }
+                    else
+                    {
+                        var user = (await IReadFunction.getUser(id, factory));
+                        return new ObjectResult(user);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return new BadRequestObjectResult(ex.ToString());
+                }
+            }
+            else
+            {
+                return new BadRequestResult();
+            }
+            
         }
     }
 }
