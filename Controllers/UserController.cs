@@ -17,7 +17,7 @@ namespace Trey2.Controllers
         // POST: UserController/Create
         [HttpPost]
         //[ValidateAntiForgeryToken]
-        [Route("create")]
+        [Route("Create")]
         async public Task<ActionResult> Create(Models.User _user, IDatabaseFactory factory)
         {
             var validationContext = new ValidationContext(_user);
@@ -42,7 +42,7 @@ namespace Trey2.Controllers
         }
 
         [HttpGet]
-        [Route("get/{id}")]
+        [Route("Get/{id}")]
         async public Task<ActionResult> Select(ulong id, IDatabaseFactory factory)
         {
             if (id < 1)
@@ -61,7 +61,7 @@ namespace Trey2.Controllers
         }
 
         [HttpPost]
-        [Route("auth")]
+        [Route("Auth")]
         async public Task<ActionResult> Auth(AuthRequest request, IDatabaseFactory factory)
         {
             var validationContext = new ValidationContext(request);
