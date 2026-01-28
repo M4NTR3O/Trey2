@@ -10,6 +10,7 @@ namespace Trey2.Models
         public string user_name { get; set; }
         public string? user_fathername { get; set; }
         [Required]
+        [EmailAddress]
         public string user_email { get; set; }
         [Required]
         public string user_nickname { get; set; }

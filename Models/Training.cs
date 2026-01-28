@@ -6,8 +6,8 @@
         public byte sport_id { get; set; }
         public byte type_training_id { get; set; }
         public string? name_training { get; set; }
-        public DateTime time_start { get; set; }
-        public DateTime local_timestamp { get; set; }
+        public DateTimeOffset time_start { get; set; }
+        public DateTimeOffset local_timestamp { get; set; }
         public float duration { get; set; }
         public float? distance { get; set; }
         public byte? avg_heart_rate { get; set; }
@@ -27,6 +27,7 @@
         public ushort? calories { get; set; }
         public bool is_gps { get; set; }
         public byte? stress_score { get; set; }
+        public byte? feeling_score { get; set; }
         public string? comment_sportsmen { get; set; }
         public ulong? coach_creator {get; set;}
         public string? comment_coach { get; set; }
