@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using MySqlX.XDevAPI.Common;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json;
@@ -36,12 +35,14 @@ namespace Trey2.Controllers
             Console.WriteLine($"Получен ответ с Python-Server {DateTime.UtcNow}");
             var json = await response.Content.ReadAsStringAsync();
             Console.WriteLine(json);
+            var opts = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            opts.Converters.Add(new PlainDateTimeConverter());
             var training_python = JsonSerializer.Deserialize<Training>(
                 json,
-                new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                }
+                opts
             );
             Console.WriteLine($"Обработан JSON {DateTime.UtcNow}");
             var validationContext = new ValidationContext(training);
@@ -75,6 +76,64 @@ namespace Trey2.Controllers
                 return new BadRequestResult();
             }
             return Ok(training_python);
+        }
+
+        [HttpGet]
+        [Route("Get/{id}")]
+        public async Task<IActionResult> GetFullTraining(ulong id, IDatabaseFactory factory)
+        {
+            if (id < 1)
+            {
+                return new BadRequestObjectResult("ID являентся не натуральным числом");
+            }
+            var training = await IReadFunction.GetFullTraining(id, factory);
+            if (training == null)
+            {
+                return new BadRequestObjectResult("Подан ошибочный id");
+            }
+            else
+            {
+                return new ObjectResult(training);
+            }
+        }
+
+        /*[HttpGet]
+        [Route("GetLow")]
+        public async Task<IActionResult> GetLowTrainings(DateOnly start, DateOnly end, IDatabaseFactory factory)
+        {
+            if (end < start)
+            {
+                return new BadRequestObjectResult("Неправильно задан диапазон времени");
+            }
+            var trainings = await IReadFunction.GetLowTrainings(start, end, factory);
+            if (trainings == null)
+            {
+                return new BadRequestObjectResult("Нет данных");
+            }
+            else
+            {
+                return new ObjectResult(trainings);
+            }
+            return View();
+        }*/
+
+        [HttpGet]
+        [Route("GetMid/{id}")]
+        public async Task<IActionResult> GetMidTraining(ulong id, IDatabaseFactory factory)
+        {
+            if (id < 1)
+            {
+                return new BadRequestObjectResult("ID являентся не натуральным числом");
+            }
+            var training = await IReadFunction.GetMidTraining(id, factory);
+            if (training == null)
+            {
+                return new BadRequestObjectResult("Подан ошибочный id");
+            }
+            else
+            {
+                return new ObjectResult(training);
+            }
         }
     }
 }

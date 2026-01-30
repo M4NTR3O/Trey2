@@ -8,8 +8,8 @@ namespace Trey2.Models
         public string? lap_caption { get; set; }
         public double? distance { get; set; }
         public double? duration { get; set; }
-        public DateTimeOffset timestamp { get; set; }
-        public DateTimeOffset start_time { get; set; }
+        public DateTime timestamp { get; set; }
+        public DateTime start_time { get; set; }
         public byte? avg_heart_rate { get; set; }
         public byte? min_heart_rate { get; set; }
         public byte? max_heart_rate { get; set; }

@@ -2,7 +2,7 @@
 {
     public class Trackpoint
     {
-        public DateTimeOffset duration_point { get; set; }
+        public DateTime duration_point { get; set; }
         public byte? heart_rate { get; set; }
         public float? latitude { get; set; }
         public float? longitude { get; set; }

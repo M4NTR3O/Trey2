@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Org.BouncyCastle.Asn1.Ocsp;
 using System.ComponentModel.DataAnnotations;
 using Trey2.DB;
 using Trey2.DB.IFunction;
@@ -49,7 +48,7 @@ namespace Trey2.Controllers
             {
                 return new BadRequestObjectResult("ID являентся не натуральным числом");
             }
-            var user = await IReadFunction.getUser(id, factory);
+            var user = await IReadFunction.GetUser(id, factory);
             if (user == null)
             {
                 return new BadRequestObjectResult("Подан ошибочный id");
@@ -71,7 +70,7 @@ namespace Trey2.Controllers
             {
                 try
                 {
-                    (ulong id, bool read) = await IReadFunction.getAuthEmail(request, factory);
+                    (ulong id, bool read) = await IReadFunction.GetAuthEmail(request, factory);
                     if (id == 0 && (!read))
                     {
                         return new BadRequestObjectResult("Нет пользователя");
@@ -82,7 +81,7 @@ namespace Trey2.Controllers
                     }
                     else
                     {
-                        var user = (await IReadFunction.getUser(id, factory));
+                        var user = (await IReadFunction.GetUser(id, factory));
                         return new ObjectResult(user);
                     }
                 }

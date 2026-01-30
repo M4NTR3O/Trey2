@@ -1,6 +1,5 @@
-﻿using MySql.Data.MySqlClient;
-using Mysqlx.Crud;
-using Trey2.Models;
+﻿using Trey2.Models;
+using MySqlConnector;
 
 namespace Trey2.DB.IFunction
 {
@@ -91,7 +90,7 @@ namespace Trey2.DB.IFunction
                     command.Parameters.AddWithValue("@Lap_number", lap.lap_number);
                     command.Parameters.AddWithValue("@Lap_caption", (object?)lap.lap_caption ?? DBNull.Value);
                     command.Parameters.Add("@Start_time", MySqlDbType.DateTime).Value = lap.start_time;
-                    command.Parameters.Add("@Timestamp", MySqlDbType.DateTime).Value = lap.timestamp.LocalDateTime;
+                    command.Parameters.Add("@Timestamp", MySqlDbType.DateTime).Value = lap.timestamp;
                     command.Parameters.AddWithValue("@Duration", lap.duration);
                     command.Parameters.AddWithValue("@Distance", (object?)lap.distance ?? DBNull.Value);
                     command.Parameters.AddWithValue("@Avg_heart_rate", (object?)lap.avg_heart_rate ?? DBNull.Value);
