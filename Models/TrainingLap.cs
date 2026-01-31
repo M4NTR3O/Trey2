@@ -15,11 +15,11 @@ namespace Trey2.Models
         public byte? max_heart_rate { get; set; }
         public double? avg_speed { get; set; }
         public double? max_speed { get; set; }
-        public double? avg_running_cadence { get; set; }
-        public double? max_running_cadence { get; set; }
-        public short? avg_power { get; set; }
-        public short? max_power { get; set; }
-        public short? total_descent { get; set; }
-        public short? total_ascent { get; set; }
+        public ushort? avg_running_cadence { get; set; }
+        public ushort? max_running_cadence { get; set; }
+        public ushort? avg_power { get; set; }
+        public ushort? max_power { get; set; }
+        public ushort? total_descent { get; set; }
+        public ushort? total_ascent { get; set; }
     }
 }
