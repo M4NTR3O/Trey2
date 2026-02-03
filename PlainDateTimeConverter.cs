@@ -9,14 +9,14 @@ namespace Trey2
         public override DateTime Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
         {
             var s = reader.GetString()!;
-            return DateTime.SpecifyKind(
-                DateTime.ParseExact(
-                    s,
-                    "yyyy-MM-dd HH:mm:ss",
-                    CultureInfo.InvariantCulture
-                ),
-                DateTimeKind.Unspecified
+
+            var dto = DateTimeOffset.Parse(
+                s,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind
             );
+
+            return DateTime.SpecifyKind(dto.DateTime, DateTimeKind.Unspecified);
         }
 
         public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)

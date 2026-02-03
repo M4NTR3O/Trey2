@@ -2,6 +2,6 @@
 {
     public abstract class BaseModel
     {
-        public ulong id { get; set; }
+        required public ulong id { get; set; }
     }
 }

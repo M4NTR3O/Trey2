@@ -59,10 +59,10 @@ namespace Trey2.DB.IFunction
                     var reader = await command.ExecuteReaderAsync();
                     if (await reader.ReadAsync())
                     {
-                        bool valid = PasswordHasher.Verify(request.Password, reader[2].ToString()!);
-                        if (valid /*reader[2].ToString() == password*/)
+                        bool valid = PasswordHasher.Verify(request.Password, reader.GetString("password"));
+                        if (valid)
                         {
-                            ulong id = Convert.ToUInt64(reader[0].ToString()!);
+                            ulong id = reader.GetUInt64("user_id");
                             await connection.CloseAsync();
                             return (id, true);
                         }
@@ -142,8 +142,6 @@ namespace Trey2.DB.IFunction
                 
                 if (training is not null)
                 {
-                    //get trackpoints - Поменять на Full
-                    //get laps - Написать функцию
                     training.trackpoints = await GetFullTrackpoint(id, factory);
                     training.laps = await GetLapsTraining(id, factory);
                 }
@@ -312,5 +310,42 @@ namespace Trey2.DB.IFunction
                 return laps;
             }
         }
+
+        public static async Task<List<LowTraining>>GetPeriodTrainings(ulong sportsman_id, DateTime start, DateTime end, IDatabaseFactory factory)
+        {
+            var database = factory.Create();
+            end = end.AddDays(1);
+            using(var connection = database.CreateNewConnection())
+            {
+                List<LowTraining> trainings = new List<LowTraining>();
+                await connection.OpenAsync();
+                string query = $"SELECT `training_id`, `name_training`, `duration`, `distance` FROM `training` " +
+                    $"WHERE `sportsmen_id` = @sportsman_id AND `time_start` >= @start AND `time_start` < @end";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("@sportsman_id", MySqlDbType.UInt64).Value = sportsman_id;
+                    command.Parameters.Add("@start", MySqlDbType.DateTime).Value = start;
+                    command.Parameters.Add("@end", MySqlDbType.DateTime).Value = end;
+                    var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        LowTraining training = new LowTraining
+                        {
+                            id = reader.GetUInt64("training_id"),
+                            name_training = reader.IsDBNull("name_training") ? null : reader.GetString("name_training"),
+                            duration = reader.GetFloat("duration"),
+                            distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance")
+                        };
+                        if (training is not null)
+                        {
+                            trainings.Add(training);
+                        }
+                    }
+                }
+                await connection.CloseAsync();
+                return trainings;
+            }
+        }
+
     }
 }

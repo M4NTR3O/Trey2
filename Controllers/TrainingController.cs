@@ -97,15 +97,15 @@ namespace Trey2.Controllers
             }
         }
 
-        /*[HttpGet]
+        [HttpGet]
         [Route("GetLow")]
-        public async Task<IActionResult> GetLowTrainings(DateOnly start, DateOnly end, IDatabaseFactory factory)
+        public async Task<IActionResult> GetLowTrainings(ulong sportsman_id, DateTime start, DateTime end, IDatabaseFactory factory)
         {
             if (end < start)
             {
                 return new BadRequestObjectResult("Неправильно задан диапазон времени");
             }
-            var trainings = await IReadFunction.GetLowTrainings(start, end, factory);
+            var trainings = await IReadFunction.GetPeriodTrainings(sportsman_id, start, end, factory);
             if (trainings == null)
             {
                 return new BadRequestObjectResult("Нет данных");
@@ -114,8 +114,7 @@ namespace Trey2.Controllers
             {
                 return new ObjectResult(trainings);
             }
-            return View();
-        }*/
+        }
 
         [HttpGet]
         [Route("GetMid/{id}")]
