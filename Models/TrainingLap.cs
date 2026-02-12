@@ -4,12 +4,16 @@ namespace Trey2.Models
 {
     public class TrainingLap
     {
-        public int lap_number { get; set; }
+        [Required]
+        required public int lap_number { get; set; }
         public string? lap_caption { get; set; }
         public double? distance { get; set; }
-        public double? duration { get; set; }
-        public DateTime timestamp { get; set; }
-        public DateTime start_time { get; set; }
+        [Required]
+        required public double? duration { get; set; }
+        [Required]
+        required public DateTime timestamp { get; set; }
+        [Required]
+        required public DateTime start_time { get; set; }
         public byte? avg_heart_rate { get; set; }
         public byte? min_heart_rate { get; set; }
         public byte? max_heart_rate { get; set; }

@@ -8,15 +8,48 @@ using Trey2.Models;
 
 namespace Trey2.Controllers
 {
+    /// <summary>
+    /// A controller for interacting with the "User" model
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class UserController : Controller
+    public class UserController : ControllerBase
     {
-
+        /// <summary>
+        /// Create new user
+        /// </summary>
+        /// <returns>Возвращает данные созданного пользователя</returns>
+        /// <remarks>
+        /// Sample request:
+        /// 
+        ///     POST api/UserController/Create
+        ///     {
+        ///         "id": 0,
+        ///         "user_surname": "Иванов",
+        ///         "user_name": "Иван",
+        ///         "user_fathername": "Иванович",
+        ///         "user_email": "ivanov_ivan_ivanovich@mail.ru",
+        ///         "user_nickname": "triplei",
+        ///         "password": "qwerty",
+        ///         "user_birthday": "2000-01-01",
+        ///         "usert_gender": true,
+        ///         "user_height": 1.85,
+        ///         "user_weight": 75.65,
+        ///         "user_only_coach": false,
+        ///         "user_hr_rest": 60,
+        ///         "user_hr_max": 200,
+        ///         "user_pace_max": null
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="201">Возвращает данные созданного пользователя</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         // POST: UserController/Create
         [HttpPost]
         //[ValidateAntiForgeryToken]
         [Route("Create")]
+        [ProducesResponseType(typeof(Models.User), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         async public Task<ActionResult> Create(Models.User _user, IDatabaseFactory factory)
         {
             var validationContext = new ValidationContext(_user);
@@ -27,7 +60,7 @@ namespace Trey2.Controllers
                 try
                 {
                     await ICreateFunction.createUser(_user, factory);
-                    return new CreatedResult();
+                    return new ObjectResult(_user);
                 }
                 catch (Exception ex)
                 {
@@ -40,6 +73,14 @@ namespace Trey2.Controllers
             }
         }
 
+        /// <summary>
+        /// Get information about user from his ID
+        /// </summary>
+        /// <param name="id">ID user</param>
+        /// <returns>Возвращает информацию о пользователе по его ID</returns>
+        /// <response code="200">Возвращает данные пользователя</response>
+        /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
         [Route("Get/{id}")]
         async public Task<ActionResult> Select(ulong id, IDatabaseFactory factory)
@@ -59,6 +100,22 @@ namespace Trey2.Controllers
             }
         }
 
+        /// <summary>
+        /// Get information about user from his ID
+        /// </summary>
+        /// <remarks>
+        /// 
+        ///     POST api/UserController/Auth
+        ///     {
+        ///         "login": "ivanov_ivan_ivanovich@mail.ru",
+        ///         "password": "qwerty"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <returns>Возвращает информацию о пользователе по его ID</returns>
+        /// <response code="200">Возвращает данные пользователя</response>
+        /// <response code="400">Нет пользователя; Неверный пароль</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPost]
         [Route("Auth")]
         async public Task<ActionResult> Auth(AuthRequest request, IDatabaseFactory factory)

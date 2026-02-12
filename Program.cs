@@ -37,8 +37,8 @@ namespace Trey2
                     Title = "Trey2 API",
                     Description = "Документация API",
                 });
-                //var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-                //options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+                var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
             });
 
             var app = builder.Build();
@@ -61,7 +61,6 @@ namespace Trey2
             app.MapControllers();
             app.Run();
             
-            //ConverterFiles.covert(@"C:\Users\emil_\Downloads\Эмиль_Кушнер_2026-01-04_16-21-47.GPX");
         }
     }
 }
