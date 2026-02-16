@@ -6,6 +6,7 @@ using System.Text.Json;
 using Trey2.DB;
 using Trey2.DB.IFunction;
 using Trey2.Models;
+using Trey2.ViewModel;
 
 namespace Trey2.Controllers
 {
@@ -20,7 +21,8 @@ namespace Trey2.Controllers
         /// <param name="training">Training</param>
         /// <param name="factory"></param>
         /// <remarks>
-        ///     Need fill data marked with "/!", data that is not required is marked with "/*", fill in the remaining data as in the example
+        /// Need fill data marked with "/!", data that is not required is marked with "/*", fill in the remaining data as in the example  
+        /// Sample request:
         /// 
         ///     POST api/TrainingController/upload-training
         ///     {
@@ -142,7 +144,7 @@ namespace Trey2.Controllers
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
         [Route("Get/{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTraining))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetFullTraining(ulong id, IDatabaseFactory factory)

@@ -4,6 +4,9 @@ namespace Trey2.Models
 {
     public class Sport: LowModel
     {
+        /// <summary>
+        /// Name sport - string wuth length = 50
+        /// </summary>
         [Required]
         required public string sport_name { get; set; }
     }

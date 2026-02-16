@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Reflection.PortableExecutable;
 using Trey2.Models;
+using Trey2.ViewModel;
 
 namespace Trey2.DB.IFunction
 {
@@ -56,7 +57,7 @@ namespace Trey2.DB.IFunction
             using (var connection = database.CreateNewConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT user_id, user_email, password FROM `user` WHERE user_email = @login;";
+                string query = @"SELECT user_id, password FROM `user` WHERE user_email = @login OR user_nickname = @login;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@login", request.Login);
@@ -85,32 +86,36 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task<Training?
-            > GetFullTraining(ulong training_id, IDatabaseFactory factory)
+        public static async Task<ViewTraining?> GetFullTraining(ulong training_id, IDatabaseFactory factory)
         {
             var database = factory.Create();
             using(var connection = database.CreateNewConnection())
             {
-                Training? training = null;
+                ViewTraining? training = null;
                 await connection.OpenAsync();
-                string query = $"SELECT `training_id`, `sportsman_id`, `sport_id`, `type_training_id`, `name_training`, `time_start`, " +
+                string query = $"SELECT `training_id`, `sportsman_id`, SP.`sport_name` AS sport, TT.`type_training_name` AS type_training, `name_training`, `time_start`, " +
                     $"`duration`, `distance`, `avg_speed`, `total_ascent`, `calories`, `is_gps`, `local_timestamp`, " +
                     $"`avg_heart_rate`, `max_heart_rate`, `min_heart_rate`, `max_speed`, `avg_running_cadence`," +
                     $"`max_running_cadence`, `avg_power`, `max_power`, `start_position_lat`, `start_position_long`," +
                     $"`total_descent`, `max_altitude`, `stress_score`, `feeling_score`, `comment_sportsman`," +
-                    $"`coach_creator`, `comment_coach`, `status_training_id` FROM `training` WHERE `training_id` = @training_id;";
+                    $"`coach_creator`, `comment_coach`, S.`status_caption` as status_caption FROM `training` AS T" +
+                    $" INNER JOIN status_training AS S ON S.status_id = T.status_training_id" +
+                    $" INNER JOIN type_training AS TT ON TT.type_training_id = T.type_training_id" +
+                    $" INNER JOIN sport AS SP ON SP.sport_id = T.sport_id" +
+                    $" WHERE `training_id` = @training_id;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
                     var reader = await command.ExecuteReaderAsync();
                     while(await reader.ReadAsync())
                     {
-                        training = new Training
+                        training = new ViewTraining
                         {
                             id = reader.GetUInt64("training_id"),
                             sportsman_id = reader.GetUInt64("sportsman_id"),
-                            sport_id = reader.GetByte("sport_id"),
-                            type_training_id = reader.GetByte("type_training_id"),
+                            //Поправить после проверки
+                            sport = reader.GetString("sport"),
+                            type_training = reader.GetString("type_training"),
                             name_training = reader.IsDBNull("name_training") ? null : reader.GetString("name_training"),
                             time_start = reader.GetDateTime("time_start"),
                             duration = reader.GetFloat("duration"),
@@ -137,8 +142,7 @@ namespace Trey2.DB.IFunction
                             comment_sportsman = reader.IsDBNull("comment_sportsman") ? null : reader.GetString("comment_sportsman"),
                             coach_creator = reader.IsDBNull("coach_creator") ? null : reader.GetUInt64("coach_creator"),
                             comment_coach = reader.IsDBNull("comment_coach") ? null : reader.GetString("comment_coach"),
-                            //Представление сделать, подумать над способом хранения
-                            status_training = reader.IsDBNull("status_training_id") ? null : reader.GetByte("status_training_id")
+                            status_training = reader.IsDBNull("status_caption") ? null : reader.GetString("status_caption")
                         };
                     }
                     
@@ -154,15 +158,19 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task<Training?> GetMidTraining(ulong training_id, IDatabaseFactory factory)
+        public static async Task<ViewTraining?> GetMidTraining(ulong training_id, IDatabaseFactory factory)
         {
             var database = factory.Create();
             using (var connection = database.CreateNewConnection())
             {
-                Training? training = null;
+                ViewTraining? training = null;
                 await connection.OpenAsync();
-                string query = $"SELECT `training_id`, `sportsman_id`, `sport_id`, `type_training_id`, `name_training`, `time_start`, " +
-                    $"`duration`, `distance`, `avg_speed`, `total_ascent`, `calories`, `is_gps`, `local_timestamp` FROM `training` WHERE `training_id` = @training_id;";
+                string query = $"SELECT `training_id`, `sportsman_id`, SP.`sport_name` AS sport, TT.`type_training_name` AS type_training, `name_training`, `time_start`, " +
+                    $"`duration`, `distance`, `avg_speed`, `total_ascent`, `calories`, `is_gps`, `local_timestamp`, S.`status_caption` as status_caption FROM `training` AS T" +
+                    $" INNER JOIN status_training AS S ON S.status_id = T.status_training_id" +
+                    $" INNER JOIN type_training AS TT ON TT.type_training_id = T.type_training_id" +
+                    $" INNER JOIN sport AS SP ON SP.sport_id = T.sport_id" +
+                    $" WHERE `training_id` = @training_id;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
@@ -172,12 +180,12 @@ namespace Trey2.DB.IFunction
                     {
                         var dt = reader.GetDateTime("time_start");
                         Console.WriteLine(dt.Kind);
-                        training = new Training
+                        training = new ViewTraining
                         {
                             id = reader.GetUInt64("training_id"),
                             sportsman_id = reader.GetUInt64("sportsman_id"),
-                            sport_id = reader.GetByte("sport_id"),
-                            type_training_id = reader.GetByte("type_training_id"),
+                            sport = reader.GetString("sport"),
+                            type_training = reader.GetString("type_training"),
                             name_training = reader.IsDBNull("name_training") ? null : reader.GetString("name_training"),
                             time_start = reader.GetDateTime("time_start"),
                             duration = reader.GetFloat("duration"),
@@ -186,7 +194,8 @@ namespace Trey2.DB.IFunction
                             total_ascent = reader.IsDBNull("total_ascent") ? null : reader.GetUInt16("total_ascent"),
                             calories = reader.IsDBNull("calories") ? null : reader.GetUInt16("calories"),
                             local_timestamp = reader.GetDateTime("local_timestamp"),
-                            is_gps = reader.GetBoolean("is_gps")
+                            is_gps = reader.GetBoolean("is_gps"),
+                            status_training = reader.GetString("status_caption")
                         };
                     }
                 }
@@ -328,7 +337,7 @@ namespace Trey2.DB.IFunction
             {
                 List<LowTraining> trainings = new List<LowTraining>();
                 await connection.OpenAsync();
-                string query = $"SELECT `training_id`, `name_training`, `duration`, `distance` FROM `training` " +
+                string query = $"SELECT `training_id`, `name_training`, `duration`, `distance`, `local_timestamp` FROM `training` " +
                     $"WHERE `sportsman_id` = @sportsman_id AND `time_start` >= @start AND `time_start` < @end";
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -343,7 +352,8 @@ namespace Trey2.DB.IFunction
                             id = reader.GetUInt64("training_id"),
                             name_training = reader.IsDBNull("name_training") ? null : reader.GetString("name_training"),
                             duration = reader.GetFloat("duration"),
-                            distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance")
+                            distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),
+                            local_timestamp = reader.GetDateTime("local_timestamp")
                         };
                         if (training is not null)
                         {
@@ -410,6 +420,40 @@ namespace Trey2.DB.IFunction
                 }
             }
             return types;
+        }
+
+        public static async Task<List<UserZones>> GetAllUserZones(ulong id_user, IDatabaseFactory factory)
+        {
+            List<UserZones> userZones = new List<UserZones>();
+            var database = factory.Create();
+            using(var connection = database.CreateNewConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"SELECT `zone_id`, `zone_number`, `low_limit`, `high_limit`, `type_zone` FROM `user_zones` WHERE `user_id` = @User";
+                using(var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("@User", MySqlDbType.UInt64).Value = id_user;
+                    var reader = await command.ExecuteReaderAsync();
+                    while(await reader.ReadAsync())
+                    {
+                        UserZones user_zone = new UserZones
+                        {
+                            user_id = id_user,
+                            id = reader.GetUInt64("zone_id"),
+                            zone_number = reader.GetByte("zone_number"),
+                            low_limit = reader.GetDouble("low_limit"),
+                            high_limit = reader.GetDouble("high_limit"),
+                            type_zone = reader.GetByte("type_zone")
+                        };
+                        if (user_zone is not null)
+                        {
+                            userZones.Add(user_zone);
+                        }
+                    }
+                }
+                await connection.CloseAsync();
+            }
+            return userZones;
         }
     }
 }

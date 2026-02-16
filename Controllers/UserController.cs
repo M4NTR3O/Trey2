@@ -104,6 +104,7 @@ namespace Trey2.Controllers
         /// Get information about user from his ID
         /// </summary>
         /// <remarks>
+        /// Sample request:
         /// 
         ///     POST api/UserController/Auth
         ///     {
@@ -152,6 +153,25 @@ namespace Trey2.Controllers
                 return new BadRequestResult();
             }
             
+        }
+
+        [HttpGet]
+        [Route("UserZones/{id}")]
+        async public Task<ActionResult> GetAllUserZones(ulong id, IDatabaseFactory factory)
+        {
+            if (id < 1)
+            {
+                return new BadRequestObjectResult("ID являентся не натуральным числом");
+            }
+            var user_zones = await IReadFunction.GetAllUserZones(id, factory);
+            if (user_zones == null)
+            {
+                return new BadRequestObjectResult("Подан ошибочный id");
+            }
+            else
+            {
+                return new ObjectResult(user_zones);
+            }
         }
     }
 }
