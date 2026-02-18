@@ -71,7 +71,7 @@ namespace Trey2.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UploadToPython([Required] [FromForm] IFormFile file, [FromForm] Training training, IDatabaseFactory factory)
+        public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] Training training, IDatabaseFactory factory)
         {
             using var client = new HttpClient();
 

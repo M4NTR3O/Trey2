@@ -14,18 +14,17 @@ namespace Trey2
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.Configuration.AddJsonFile("DB/Params.json", optional: true, reloadOnChange: true);
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowSwagger", policy =>
+                options.AddPolicy("AllowAll", policy =>
                 {
-                    policy
-                        .AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader();
+                    policy.WithOrigins("https://localhost:3000")
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
                 });
             });
             // Add services to the container.
-            builder.Configuration.AddJsonFile("DB/Params.json", optional: true, reloadOnChange: true);
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IDatabaseFactory, DatabaseFactory>();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -43,6 +42,7 @@ namespace Trey2
 
             var app = builder.Build();
             app.UseCors("AllowAll");
+            app.UsePathBase("/api");
             app.UseMiddleware<RequestLoggingMiddleware>();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

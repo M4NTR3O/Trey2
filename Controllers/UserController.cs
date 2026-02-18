@@ -128,7 +128,7 @@ namespace Trey2.Controllers
             {
                 try
                 {
-                    (ulong id, bool read) = await IReadFunction.GetAuthEmail(request, factory);
+                    (ulong id, bool read) = await IReadFunction.GetAuth(request, factory);
                     if (id == 0 && (!read))
                     {
                         return new BadRequestObjectResult("Нет пользователя");
@@ -186,9 +186,18 @@ namespace Trey2.Controllers
             return new OkResult();
         }
 
+        /// <summary>
+        /// Change user data (without password, nickname, email)\
+        /// Изменяет пароль пользователя
+        /// </summary>
+        /// <param name="user">Model User data</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="400">Ошибка валидации данных; </response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPut]
         [Route("Update")]
-        async public Task<ActionResult> UpdateUser(User user, IDatabaseFactory factory)
+        async public Task<IActionResult> UpdateUser(User user, IDatabaseFactory factory)
         {
             var validationContext = new ValidationContext(user);
             var validationResults = new List<ValidationResult>();
@@ -198,20 +207,30 @@ namespace Trey2.Controllers
                 try
                 {
                     await IUpdateFunction.UpdateUser(user, factory);
-                    return new OkResult();
+                    return Ok();
                 }
                 catch (Exception ex)
                 {
-                    return new BadRequestObjectResult(ex.Message);
+                    return BadRequest(ex.Message);
                 }
             }
             else
             {
-                return new BadRequestResult();
+                return BadRequest();
             }
         }
 
-
+        /// <summary>
+        /// Change user password\
+        /// Изменяет пароль пользователя
+        /// </summary>
+        /// <param name="id">ID User</param>
+        /// <param name="last_password">Current user password</param>
+        /// <param name="new_password">New user password</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="400">Invalid credentials (Неправильно введены данные)</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPatch]
         [Route("ChangePassword/{id}")]
         public async Task<IActionResult> PatchPassword(ulong id, string last_password, string new_password, IDatabaseFactory factory)
@@ -219,6 +238,55 @@ namespace Trey2.Controllers
             var result = await IPatchFunction.PatchPassword(id, last_password, new_password, factory);
             if (!result)
                 return BadRequest("Invalid credentials");
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Change user nickname (if it is unique)\
+        /// Изменяет никнейм пользователя (если он уникален)
+        /// </summary>
+        /// <param name="id">ID User</param>
+        /// <param name="new_nickname">New user Nickname MaxLength=50</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="200">Данные не изменены (Введён аналогичный никнейм либо нет пользователя)</response>
+        /// <response code="409">Данный никнейм уже привязана к другому аккаунту</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpPatch]
+        [Route("ChangeNickname/{id}")]
+        public async Task<IActionResult> PatchNickname(ulong id, [MaxLength(50)] string new_nickname, IDatabaseFactory factory)
+        {
+            var result = await IPatchFunction.PatchUserNickname(id, new_nickname, factory);
+            if (result == -1)
+                return Conflict("Invalid Nickname already exists");
+            else if (result == 0)
+                return Ok("No change data (equal or not in DB)");
+
+            return Ok();
+        }
+
+
+        /// <summary>
+        /// Change user email (if it is unique)\
+        /// Изменяет почту пользователя (если она уникальна)
+        /// </summary>
+        /// <param name="id">ID User</param>
+        /// <param name="new_email">New user Email MaxLength=50</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="200">Данные не изменены (Введён аналогичный email либо нет пользователя)</response>
+        /// <response code="409">Данная почта уже привязана к другому аккаунту</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpPatch]
+        [Route("ChangeEmail/{id}")]
+        public async Task<IActionResult> PatchEmail(ulong id, [MaxLength(50)] string new_email, IDatabaseFactory factory)
+        {
+            var result = await IPatchFunction.PatchUserEmail(id, new_email, factory);
+            if (result == -1)
+                return Conflict("Invalid Email already exists");
+            else if (result == 0)
+                return Ok("No change data (equal or not in DB)");
 
             return Ok();
         }

@@ -51,7 +51,7 @@ namespace Trey2.DB.IFunction
 
         }
 
-        public static async Task<(ulong, bool)> GetAuthEmail(AuthRequest request, IDatabaseFactory factory)
+        public static async Task<(ulong, bool)> GetAuth(AuthRequest request, IDatabaseFactory factory)
         {
             var database = factory.Create();
             using (var connection = database.CreateNewConnection())
