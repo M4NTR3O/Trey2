@@ -145,14 +145,14 @@ namespace Trey2.DB.IFunction
                             status_training = reader.IsDBNull("status_caption") ? null : reader.GetString("status_caption")
                         };
                     }
-                    
+                    await reader.CloseAsync();
                 }
                 await connection.CloseAsync();
                 
                 if (training is not null)
                 {
-                    training.trackpoints = await GetFullTrackpoint(training_id, factory);
-                    training.laps = await GetLapsTraining(training_id, factory);
+                    training.trackpoints = await GetFullTrackpoint(training_id, connection);
+                    training.laps = await GetLapsTraining(training_id, connection);
                 }
                 return training;
             }
@@ -240,93 +240,83 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task<List<Trackpoint>> GetFullTrackpoint(ulong training_id, IDatabaseFactory factory)
+        public static async Task<List<Trackpoint>> GetFullTrackpoint(ulong training_id, MySqlConnection? connection)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            List<Trackpoint> trackpoints = new List<Trackpoint>();
+            string query = $"SELECT `duration_point`, `latitude`, `longitude`," +
+                $"`distance`, `heart_rate`, `speed`, `cadence`, `power`, `altitude`" +
+                $" FROM `trackpoint` WHERE `training_id` = @training_id;";
+            using (var command = new MySqlCommand(query, connection))
             {
-                List<Trackpoint> trackpoints = new List<Trackpoint>();
-                await connection.OpenAsync();
-                string query = $"SELECT `duration_point`, `latitude`, `longitude`," +
-                    $"`distance`, `heart_rate`, `speed`, `cadence`, `power`, `altitude`" +
-                    $" FROM `trackpoint` WHERE `training_id` = @training_id;";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
-                    var reader = await command.ExecuteReaderAsync();
+                command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                var reader = await command.ExecuteReaderAsync();
 
-                    while (await reader.ReadAsync())
+                while (await reader.ReadAsync())
+                {
+                    Trackpoint tp = new Trackpoint
                     {
-                        Trackpoint tp = new Trackpoint
-                        {
-                            duration_point = reader.GetDateTime("duration_point"),
-                            latitude = reader.IsDBNull("latitude") ? null : reader.GetFloat("latitude"),
-                            longitude = reader.IsDBNull("longitude") ? null : reader.GetFloat("longitude"),
-                            distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),
-                            heart_rate = reader.IsDBNull("heart_rate") ? null : reader.GetByte("heart_rate"),
-                            speed = reader.IsDBNull("speed") ? null : reader.GetFloat("speed"),
-                            cadence = reader.IsDBNull("cadence") ? null : reader.GetUInt16("cadence"),
-                            power = reader.IsDBNull("power") ? null :reader.GetUInt16("power"),
-                            altitude = reader.IsDBNull("altitude") ? null : reader.GetFloat("altitude")
-                        };
-                        if (tp is not null)
-                        {
-                            trackpoints.Add(tp);
-                        }
+                        duration_point = reader.GetDateTime("duration_point"),
+                        latitude = reader.IsDBNull("latitude") ? null : reader.GetFloat("latitude"),
+                        longitude = reader.IsDBNull("longitude") ? null : reader.GetFloat("longitude"),
+                        distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),
+                        heart_rate = reader.IsDBNull("heart_rate") ? null : reader.GetByte("heart_rate"),
+                        speed = reader.IsDBNull("speed") ? null : reader.GetFloat("speed"),
+                        cadence = reader.IsDBNull("cadence") ? null : reader.GetUInt16("cadence"),
+                        power = reader.IsDBNull("power") ? null :reader.GetUInt16("power"),
+                        altitude = reader.IsDBNull("altitude") ? null : reader.GetFloat("altitude")
+                    };
+                    if (tp is not null)
+                    {
+                        trackpoints.Add(tp);
                     }
                 }
-                await connection.CloseAsync();
-                return trackpoints;
+                await reader.CloseAsync();
             }
+            return trackpoints;
         }
 
-        public static async Task<List<TrainingLap>> GetLapsTraining(ulong training_id, IDatabaseFactory factory)
+        public static async Task<List<TrainingLap>> GetLapsTraining(ulong training_id, MySqlConnection? connection)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            List<TrainingLap> laps = new List<TrainingLap>();
+            string query = $"SELECT `lap_number`, `lap_caption`, `start_time`," +
+                $"`timestamp`, `duration`, `distance`, `avg_heart_rate`, `max_heart_rate`," +
+                $"`min_heart_rate`, `max_speed`, `avg_running_cadence`,`max_running_cadence`," +
+                $" `avg_power`, `max_power`, `total_ascent`, `total_descent`" +
+                $" FROM `training_lap` WHERE `training_id` = @training_id;";
+            using (var command = new MySqlCommand(query, connection))
             {
-                List<TrainingLap> laps = new List<TrainingLap>();
-                await connection.OpenAsync();
-                string query = $"SELECT `lap_number`, `lap_caption`, `start_time`," +
-                    $"`timestamp`, `duration`, `distance`, `avg_heart_rate`, `max_heart_rate`," +
-                    $"`min_heart_rate`, `max_speed`, `avg_running_cadence`,`max_running_cadence`," +
-                    $" `avg_power`, `max_power`, `total_ascent`, `total_descent`" +
-                    $" FROM `training_lap` WHERE `training_id` = @training_id;";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
-                    var reader = await command.ExecuteReaderAsync();
+                command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                var reader = await command.ExecuteReaderAsync();
 
-                    while (await reader.ReadAsync())
+                while (await reader.ReadAsync())
+                {
+                    TrainingLap lap = new TrainingLap
                     {
-                        TrainingLap lap = new TrainingLap
-                        {
-                            lap_number = reader.GetInt32("lap_number"),
-                            lap_caption = reader.IsDBNull("lap_caption")? null : reader.GetString("lap_caption"),
-                            start_time = reader.GetDateTime("start_time"),
-                            timestamp = reader.GetDateTime("timestamp"),
-                            duration = reader.GetFloat("duration"),
-                            distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),
-                            avg_heart_rate = reader.IsDBNull("avg_heart_rate") ? null : reader.GetByte("avg_heart_rate"),
-                            max_heart_rate = reader.IsDBNull("max_heart_rate") ? null : reader.GetByte("max_heart_rate"),
-                            min_heart_rate = reader.IsDBNull("min_heart_rate") ? null : reader.GetByte("min_heart_rate"),
-                            max_speed = reader.IsDBNull("max_speed") ? null : reader.GetFloat("max_speed"),
-                            avg_running_cadence = reader.IsDBNull("avg_running_cadence") ? null : reader.GetUInt16("avg_running_cadence"),
-                            max_running_cadence = reader.IsDBNull("max_running_cadence") ? null : reader.GetUInt16("max_running_cadence"),
-                            avg_power = reader.IsDBNull("avg_power") ? null : reader.GetUInt16("avg_power"),
-                            max_power = reader.IsDBNull("max_power") ? null : reader.GetUInt16("max_power"),
-                            total_ascent = reader.IsDBNull("total_ascent") ? null : reader.GetUInt16("total_ascent"),
-                            total_descent = reader.IsDBNull("total_descent") ? null : reader.GetUInt16("total_descent"),
-                        };
-                        if (lap is not null)
-                        {
-                            laps.Add(lap);
-                        }
+                        lap_number = reader.GetInt32("lap_number"),
+                        lap_caption = reader.IsDBNull("lap_caption")? null : reader.GetString("lap_caption"),
+                        start_time = reader.GetDateTime("start_time"),
+                        timestamp = reader.GetDateTime("timestamp"),
+                        duration = reader.GetFloat("duration"),
+                        distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),
+                        avg_heart_rate = reader.IsDBNull("avg_heart_rate") ? null : reader.GetByte("avg_heart_rate"),
+                        max_heart_rate = reader.IsDBNull("max_heart_rate") ? null : reader.GetByte("max_heart_rate"),
+                        min_heart_rate = reader.IsDBNull("min_heart_rate") ? null : reader.GetByte("min_heart_rate"),
+                        max_speed = reader.IsDBNull("max_speed") ? null : reader.GetFloat("max_speed"),
+                        avg_running_cadence = reader.IsDBNull("avg_running_cadence") ? null : reader.GetUInt16("avg_running_cadence"),
+                        max_running_cadence = reader.IsDBNull("max_running_cadence") ? null : reader.GetUInt16("max_running_cadence"),
+                        avg_power = reader.IsDBNull("avg_power") ? null : reader.GetUInt16("avg_power"),
+                        max_power = reader.IsDBNull("max_power") ? null : reader.GetUInt16("max_power"),
+                        total_ascent = reader.IsDBNull("total_ascent") ? null : reader.GetUInt16("total_ascent"),
+                        total_descent = reader.IsDBNull("total_descent") ? null : reader.GetUInt16("total_descent"),
+                    };
+                    if (lap is not null)
+                    {
+                        laps.Add(lap);
                     }
                 }
-                await connection.CloseAsync();
-                return laps;
+                await reader.CloseAsync();
             }
+            return laps;
         }
 
         public static async Task<List<LowTraining>>GetPeriodTrainings(ulong sportsman_id, DateTime start, DateTime end, IDatabaseFactory factory)
@@ -337,7 +327,8 @@ namespace Trey2.DB.IFunction
             {
                 List<LowTraining> trainings = new List<LowTraining>();
                 await connection.OpenAsync();
-                string query = $"SELECT `training_id`, `name_training`, `duration`, `distance`, `local_timestamp` FROM `training` " +
+                string query = $"SELECT `training_id`, `name_training`, `sport_id, `duration`, `distance`, `local_timestamp` S.`status_caption` as status_caption FROM `training` AS T " +
+                    $" INNER JOIN status_training AS S ON S.status_id = T.status_training_id" +
                     $"WHERE `sportsman_id` = @sportsman_id AND `time_start` >= @start AND `time_start` < @end";
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -350,6 +341,7 @@ namespace Trey2.DB.IFunction
                         LowTraining training = new LowTraining
                         {
                             id = reader.GetUInt64("training_id"),
+                            sport_id = reader.GetByte("sport_id"),
                             name_training = reader.IsDBNull("name_training") ? null : reader.GetString("name_training"),
                             duration = reader.GetFloat("duration"),
                             distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),

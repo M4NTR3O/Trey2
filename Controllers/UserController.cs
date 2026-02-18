@@ -64,12 +64,12 @@ namespace Trey2.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return new StatusCodeResult(500);
+                    return new BadRequestObjectResult(ex.Message);
                 }
             }
             else
             {
-                return new BadRequestResult();
+                return new BadRequestObjectResult("No valid Data");
             }
         }
 
@@ -172,6 +172,55 @@ namespace Trey2.Controllers
             {
                 return new ObjectResult(user_zones);
             }
+        }
+
+        [HttpDelete]
+        [Route("Delete/{id}")]
+        async public Task<ActionResult> DeleteUser(ulong id, IDatabaseFactory factory)
+        {
+            if (id < 1)
+            {
+                return new BadRequestObjectResult("ID являентся не натуральным числом");
+            }
+            await IDeleteFunction.DeleteUser(id, factory);
+            return new OkResult();
+        }
+
+        [HttpPut]
+        [Route("Update")]
+        async public Task<ActionResult> UpdateUser(User user, IDatabaseFactory factory)
+        {
+            var validationContext = new ValidationContext(user);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(user, validationContext, validationResults, true);
+            if (isValid)
+            {
+                try
+                {
+                    await IUpdateFunction.UpdateUser(user, factory);
+                    return new OkResult();
+                }
+                catch (Exception ex)
+                {
+                    return new BadRequestObjectResult(ex.Message);
+                }
+            }
+            else
+            {
+                return new BadRequestResult();
+            }
+        }
+
+
+        [HttpPatch]
+        [Route("ChangePassword/{id}")]
+        public async Task<IActionResult> PatchPassword(ulong id, string last_password, string new_password, IDatabaseFactory factory)
+        {
+            var result = await IPatchFunction.PatchPassword(id, last_password, new_password, factory);
+            if (!result)
+                return BadRequest("Invalid credentials");
+
+            return Ok();
         }
     }
 }

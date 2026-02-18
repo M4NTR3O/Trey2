@@ -8,17 +8,20 @@ namespace Trey2.Models
         /// Surname user - string with length = 50
         /// </summary>
         [Required]
+        [MaxLength(50)]
         required public string user_surname { get; set; }
 
         /// <summary>
         /// Name user - string with length = 50
         /// </summary>
         [Required]
+        [MaxLength(50)]
         required public string user_name { get; set; }
 
         /// <summary>
         /// Fatherrname user - string with length = 50 (may be null)
         /// </summary>
+        [MaxLength(50)]
         public string? user_fathername { get; set; }
 
         /// <summary>
@@ -26,12 +29,14 @@ namespace Trey2.Models
         /// </summary>
         [Required]
         [EmailAddress]
+        [MaxLength(50)]
         required public string user_email { get; set; }
 
         /// <summary>
         /// Nickname user - string with length = 50
         /// </summary>
         [Required]
+        [MaxLength(50)]
         required public string user_nickname { get; set; }
 
         /// <summary>

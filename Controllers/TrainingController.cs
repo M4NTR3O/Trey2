@@ -71,7 +71,7 @@ namespace Trey2.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] Training training, IDatabaseFactory factory)
+        public async Task<IActionResult> UploadToPython([Required] [FromForm] IFormFile file, [FromForm] Training training, IDatabaseFactory factory)
         {
             using var client = new HttpClient();
 
@@ -124,12 +124,12 @@ namespace Trey2.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return new StatusCodeResult(500);
+                    return new BadRequestObjectResult(ex.Message);
                 }
             }
             else
             {
-                return new BadRequestResult();
+                return new BadRequestObjectResult("No valid data");
             }
             return new ObjectResult(training_python);
         }
@@ -219,6 +219,44 @@ namespace Trey2.Controllers
             else
             {
                 return new ObjectResult(training);
+            }
+        }
+
+        // Проверку на наличие id (вообще, ещё на аутентификацию
+        [HttpDelete]
+        [Route("Delete/{id}")]
+        async public Task<ActionResult> DeleteTraining(ulong id, IDatabaseFactory factory)
+        {
+            if (id < 1)
+            {
+                return new BadRequestObjectResult("ID являентся не натуральным числом");
+            }
+            await IDeleteFunction.DeleteTraining(id, factory);
+            return new OkResult();
+        }
+
+        [HttpPut]
+        [Route("Update")]
+        async public Task<ActionResult> UpdateTraining(Training training, IDatabaseFactory factory)
+        {
+            var validationContext = new ValidationContext(training);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+            if (isValid)
+            {
+                try
+                {
+                    await IUpdateFunction.UpdateTraining(training, factory);
+                    return new OkResult();
+                }
+                catch (Exception ex)
+                {
+                    return new BadRequestObjectResult(ex.Message);
+                }
+            }
+            else
+            {
+                return new BadRequestResult();
             }
         }
     }

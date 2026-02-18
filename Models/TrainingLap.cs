@@ -16,6 +16,7 @@ namespace Trey2.Models
         /// Lap caption - string with length = 40 (may be null)\
         /// Описание круга (Может быть null)
         /// </summary>
+        [MaxLength(40)]
         public string? lap_caption { get; set; }
 
         /// <summary>

@@ -8,6 +8,7 @@ namespace Trey2.Models
         /// Name sport - string wuth length = 50
         /// </summary>
         [Required]
+        [MaxLength(50)]
         required public string sport_name { get; set; }
     }
 }
