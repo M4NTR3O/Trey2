@@ -13,7 +13,7 @@ namespace Trey2.Controllers
         /// Get a list of types of training
         /// </summary>
         /// <returns>Возвращает список типов тренировки</returns>
-        /// <response code="200">Возвроащает список типов тренировки</response>
+        /// <response code="200">Возвращает список типов тренировки</response>
         /// <response code="400">Данные в БД отсутствуют</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
@@ -25,11 +25,11 @@ namespace Trey2.Controllers
             var types = await IReadFunction.GetTypesTraining(factory);
             if (types == null)
             {
-                return new BadRequestObjectResult("Ошибка");
+                return BadRequest("Ошибка");
             }
             else
             {
-                return new ObjectResult(types);
+                return Ok(types);
             }
         }
     }

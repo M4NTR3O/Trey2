@@ -6,20 +6,19 @@ namespace Trey2.DB.IFunction
     public interface IPatchFunction
     {
         //Patch Lap Caption
-        public static async Task<bool> PatchLapCaption(ulong id_lap, ulong id_training, string caption_lap, IDatabaseFactory factory)
+        public static async Task<bool> PatchLapCaption(int id_lap, ulong id_training, string caption_lap, IDatabaseFactory factory)
         {
-            var database = factory.Create();
             bool result;
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
 
                 string update_query = @"UPDATE training_lap SET lap_caption = @caption WHERE training_lap_id = @id_lap AND training_id = @id_training;";
                 using (var update_command = new MySqlCommand(update_query, connection))
                 {
-                    update_command.Parameters.Add("@id_lap", MySqlDbType.UInt64).Value = id_lap;
+                    update_command.Parameters.Add("@id_lap", MySqlDbType.UInt32).Value = id_lap;
                     update_command.Parameters.Add("@id_training", MySqlDbType.UInt64).Value = id_training;
-                    update_command.Parameters.Add("@name", MySqlDbType.String).Value = caption_lap;
+                    update_command.Parameters.Add("@caption", MySqlDbType.String).Value = caption_lap;
                     result = await update_command.ExecuteNonQueryAsync() > 0;
                 }
                 await connection.CloseAsync();
@@ -30,8 +29,7 @@ namespace Trey2.DB.IFunction
         //Patch email
         public static async Task<sbyte> PatchUserEmail(ulong id, string email, IDatabaseFactory factory)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 sbyte result;
@@ -57,8 +55,7 @@ namespace Trey2.DB.IFunction
         //Patch nickname
         public static async Task<sbyte> PatchUserNickname(ulong id, string nickname, IDatabaseFactory factory)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 sbyte result;
@@ -84,9 +81,8 @@ namespace Trey2.DB.IFunction
         //Patch Password
         public static async Task<bool> PatchPassword(ulong id, string last_password, string new_password, IDatabaseFactory factory)
         {
-            var database = factory.Create();
             bool result;
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
 
@@ -124,8 +120,7 @@ namespace Trey2.DB.IFunction
         //Patch Training Name
         public static async Task<bool> PatchNameTraining(ulong id, string name_training, IDatabaseFactory factory)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;
@@ -144,8 +139,7 @@ namespace Trey2.DB.IFunction
         //Patch Training Stress Score
         public static async Task<bool> PatchStressScoreTraining(ulong id, byte stress_score, IDatabaseFactory factory)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;
@@ -164,8 +158,7 @@ namespace Trey2.DB.IFunction
         //Patch Training Feeling Score
         public static async Task<bool> PatchFeelingScoreTraining(ulong id, byte feeling_score, IDatabaseFactory factory)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;
@@ -184,8 +177,7 @@ namespace Trey2.DB.IFunction
         //Patch Sportsmen comment
         public static async Task<bool> PatchCommentSportsmanTraining(ulong id, string comment_sportsman, IDatabaseFactory factory)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;

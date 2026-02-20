@@ -32,7 +32,7 @@ namespace Trey2.Controllers
         ///         "user_nickname": "triplei",
         ///         "password": "qwerty",
         ///         "user_birthday": "2000-01-01",
-        ///         "usert_gender": true,
+        ///         "user_gender": true,
         ///         "user_height": 1.85,
         ///         "user_weight": 75.65,
         ///         "user_only_coach": false,
@@ -64,12 +64,12 @@ namespace Trey2.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return new BadRequestObjectResult(ex.Message);
+                    return BadRequest(ex.Message);
                 }
             }
             else
             {
-                return new BadRequestObjectResult("No valid Data");
+                return BadRequest("No valid Data");
             }
         }
 
@@ -87,12 +87,12 @@ namespace Trey2.Controllers
         {
             if (id < 1)
             {
-                return new BadRequestObjectResult("ID являентся не натуральным числом");
+                return BadRequest("ID является не натуральным числом");
             }
             var user = await IReadFunction.GetUser(id, factory);
             if (user == null)
             {
-                return new BadRequestObjectResult("Подан ошибочный id");
+                return BadRequest("Подан ошибочный id");
             }
             else
             {
@@ -128,62 +128,69 @@ namespace Trey2.Controllers
             {
                 try
                 {
-                    (ulong id, bool read) = await IReadFunction.GetAuth(request, factory);
-                    if (id == 0 && (!read))
-                    {
-                        return new BadRequestObjectResult("Нет пользователя");
-                    }
-                    else if (id == 0)
-                    {
-                        return new BadRequestObjectResult("Неверный пароль");
-                    }
-                    else
-                    {
-                        var user = (await IReadFunction.GetUser(id, factory));
-                        return new ObjectResult(user);
-                    }
+                    var result = await IReadFunction.GetAuth(request, factory);
+                    if (!result.flag)
+                        return BadRequest("Invalid credentials");
+
+                    return Ok(result.user);
                 }
                 catch (Exception ex)
                 {
-                    return new BadRequestObjectResult(ex.ToString());
+                    return BadRequest(ex.ToString());
                 }
             }
             else
             {
-                return new BadRequestResult();
+                return BadRequest();
             }
             
         }
 
+        /// <summary>
+        /// Get information about user zones from his ID
+        /// </summary>
+        /// <returns>Возвращает информацию о зонах пользователя по его ID</returns>
+        /// <response code="200">Возвращает данные зон пользователя</response>
+        /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
         [Route("UserZones/{id}")]
         async public Task<ActionResult> GetAllUserZones(ulong id, IDatabaseFactory factory)
         {
             if (id < 1)
             {
-                return new BadRequestObjectResult("ID являентся не натуральным числом");
+                return BadRequest("ID является не натуральным числом");
             }
             var user_zones = await IReadFunction.GetAllUserZones(id, factory);
             if (user_zones == null)
             {
-                return new BadRequestObjectResult("Подан ошибочный id");
+                return BadRequest("Подан ошибочный id");
             }
             else
             {
-                return new ObjectResult(user_zones);
+                return Ok(user_zones);
             }
         }
 
+        /// <summary>
+        /// Delete information about user zones from his ID
+        /// </summary>
+        /// <returns>Удаляет информацию о пользователе по его ID</returns>
+        /// <response code="200">Успешно удалены данные</response>
+        /// <response code="400">ID является не натуральным числом</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpDelete]
         [Route("Delete/{id}")]
         async public Task<ActionResult> DeleteUser(ulong id, IDatabaseFactory factory)
         {
             if (id < 1)
             {
-                return new BadRequestObjectResult("ID являентся не натуральным числом");
+                return BadRequest("ID является не натуральным числом");
             }
-            await IDeleteFunction.DeleteUser(id, factory);
-            return new OkResult();
+            var result = await IDeleteFunction.DeleteUser(id, factory);
+            if (!result)
+                return BadRequest("No Delete data");
+            return Ok();
         }
 
         /// <summary>
@@ -193,7 +200,7 @@ namespace Trey2.Controllers
         /// <param name="user">Model User data</param>
         /// <returns>При успешном изменении ничего не возвращает</returns>
         /// <response code="200"></response>
-        /// <response code="400">Ошибка валидации данных; </response>
+        /// <response code="400">Ошибка валидации данных; другие</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPut]
         [Route("Update")]

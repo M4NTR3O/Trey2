@@ -8,8 +8,7 @@ namespace Trey2.DB.IFunction
         //Update User
         public static async Task UpdateUser(User user, IDatabaseFactory factory)
         {
-            var database = factory.Create();
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 using (var command = new MySqlCommand(@"UPDATE `user` SET user_surname = @Surname, user_name = @Name,
@@ -39,9 +38,8 @@ namespace Trey2.DB.IFunction
         //Update Training
         public static async Task UpdateTraining(Training training, IDatabaseFactory factory)
         {
-            var database = factory.Create();
             training.avg_speed = training.distance is not null? training.distance / training.duration: null;
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 using (var command = new MySqlCommand(@"UPDATE `training` SET sport_id = @Sport, type_training_id = @Type_Training,

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json;
+using System.Xml.Linq;
 using Trey2.DB;
 using Trey2.DB.IFunction;
 using Trey2.Models;
@@ -90,7 +91,6 @@ namespace Trey2.Controllers
             );
             Console.WriteLine($"Получен ответ с Python-Server {DateTime.UtcNow}");
             var json = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(json);
             var opts = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -124,14 +124,14 @@ namespace Trey2.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return new BadRequestObjectResult(ex.Message);
+                    return BadRequest(ex.Message);
                 }
             }
             else
             {
-                return new BadRequestObjectResult("No valid data");
+                return BadRequest("No valid data");
             }
-            return new ObjectResult(training_python);
+            return Ok(training_python);
         }
 
         /// <summary>
@@ -151,16 +151,16 @@ namespace Trey2.Controllers
         {
             if (id < 1)
             {
-                return new BadRequestObjectResult("ID является не натуральным числом");
+                return BadRequest("ID является не натуральным числом");
             }
             var training = await IReadFunction.GetFullTraining(id, factory);
             if (training == null)
             {
-                return new BadRequestObjectResult("Подан ошибочный id");
+                return BadRequest("Подан ошибочный id");
             }
             else
             {
-                return new ObjectResult(training);
+                return Ok(training);
             }
         }
 
@@ -181,16 +181,16 @@ namespace Trey2.Controllers
         {
             if (end < start)
             {
-                return new BadRequestObjectResult("Неправильно задан диапазон времени");
+                return BadRequest("Неправильно задан диапазон времени");
             }
             var trainings = await IReadFunction.GetPeriodTrainings(sportsman_id, start, end, factory);
             if (trainings == null)
             {
-                return new BadRequestObjectResult("Нет данных");
+                return BadRequest("Нет данных");
             }
             else
             {
-                return new ObjectResult(trainings);
+                return Ok(trainings);
             }
         }
 
@@ -209,32 +209,48 @@ namespace Trey2.Controllers
         {
             if (id < 1)
             {
-                return new BadRequestObjectResult("ID являентся не натуральным числом");
+                return BadRequest("ID являентся не натуральным числом");
             }
             var training = await IReadFunction.GetMidTraining(id, factory);
             if (training == null)
             {
-                return new BadRequestObjectResult("Подан ошибочный id");
+                return BadRequest("Подан ошибочный id");
             }
             else
             {
-                return new ObjectResult(training);
+                return Ok(training);
             }
         }
 
-        // Проверку на наличие id (вообще, ещё на аутентификацию
+        /// <summary>
+        /// Delete information about training from its ID
+        /// </summary>
+        /// <returns>Удаляет информацию о тренировке по её ID</returns>
+        /// <response code="200">Успешно удалены данные</response>
+        /// <response code="400">ID является не натуральным числом</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpDelete]
         [Route("Delete/{id}")]
         async public Task<ActionResult> DeleteTraining(ulong id, IDatabaseFactory factory)
         {
             if (id < 1)
             {
-                return new BadRequestObjectResult("ID являентся не натуральным числом");
+                return BadRequest("ID являентся не натуральным числом");
             }
-            await IDeleteFunction.DeleteTraining(id, factory);
-            return new OkResult();
+            var result = await IDeleteFunction.DeleteTraining(id, factory);
+            if (!result)
+                return Ok("No change data (equal or not in DB)");
+
+            return Ok();
         }
 
+
+        /// <summary>
+        /// Update training params\
+        /// (params for update: sport_id, type_training_id, name_training, duration, distance, calories, stress_score, feeling_score, comment_sportsman)
+        /// </summary>
+        /// <param name="training">Model training</param>
+        /// <returns></returns>
         [HttpPut]
         [Route("Update")]
         async public Task<ActionResult> UpdateTraining(Training training, IDatabaseFactory factory)
@@ -247,17 +263,133 @@ namespace Trey2.Controllers
                 try
                 {
                     await IUpdateFunction.UpdateTraining(training, factory);
-                    return new OkResult();
+                    return Ok();
                 }
                 catch (Exception ex)
                 {
-                    return new BadRequestObjectResult(ex.Message);
+                    return BadRequest(ex.Message);
                 }
             }
             else
             {
-                return new BadRequestResult();
+                return BadRequest();
             }
+        }
+
+        /// <summary>
+        /// Change training name\
+        /// Изменяет наименование тренировки
+        /// </summary>
+        /// <param name="id">ID training</param>
+        /// <param name="name">New name training MaxLength=100</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="200">Данные не изменены (Введено аналогичное имя либо нет тренировки)</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpPatch]
+        [Route("Patch/Name/{id}")]
+        async public Task<IActionResult> PatchNameTraining(ulong id, [MaxLength(100)] string name, IDatabaseFactory factory)
+        {
+            var result = await IPatchFunction.PatchNameTraining(id, name, factory);
+            if (!result)
+                return Ok("No change data (equal or not in DB)");
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Change training stress score\
+        /// Изменяет оценку напряжения тренировочной сессии
+        /// </summary>
+        /// <param name="id">ID training</param>
+        /// <param name="score">New stress score</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="200">Данные не изменены (Введена аналогичная оценка либо нет тренировки)</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpPatch]
+        [Route("Patch/StressScore/{id}")]
+        async public Task<IActionResult> PatchStressScoreTraining(ulong id, [Range(1,10)] byte score, IDatabaseFactory factory)
+        {
+            var result = await IPatchFunction.PatchStressScoreTraining(id, score, factory);
+            if (!result)
+                return Ok("No change data (equal or not in DB)");
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Change training feeeling score\
+        /// Изменяет оценку самочувствия тренировочной сессии
+        /// </summary>
+        /// <param name="id">ID training</param>
+        /// <param name="score">New feeling score</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="200">Данные не изменены (Введена аналогичная оценка либо нет тренировки)</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpPatch]
+        [Route("Patch/FeelingScore/{id}")]
+        async public Task<IActionResult> PatchFeelingScoreTraining(ulong id, [Range(1, 5)] byte score, IDatabaseFactory factory)
+        {
+            var result = await IPatchFunction.PatchFeelingScoreTraining(id, score, factory);
+            if (!result)
+                return Ok("No change data (equal or not in DB)");
+
+            return Ok();
+        }
+
+
+        /// <summary>
+        /// Change sportsman comment for training\
+        /// Изменяет комментарий спортсмена у тренировки
+        /// </summary>
+        /// <param name="id">ID training</param>
+        /// <param name="comment">New sportsman comment MaxLength=1000</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="200">Данные не изменены (Введён аналогичный комментарий либо нет тренировки)</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpPatch]
+        [Route("Patch/CommentSportsman/{id}")]
+        async public Task<IActionResult> PatchCommentSportsman(ulong id, [MaxLength(1000)] string? comment, IDatabaseFactory factory)
+        {
+            if (comment is null)
+            {
+                return BadRequest("comment is null");
+            }
+            var result = await IPatchFunction.PatchCommentSportsmanTraining(id, comment, factory);
+            if (!result)
+                return Ok("No change data (equal or not in DB)");
+
+            return Ok();
+        }
+
+
+        /// <summary>
+        /// Change lap caption for training\
+        /// Изменяет описание круга для тренировки
+        /// </summary>
+        /// <param name="id">ID Traininng</param>
+        /// <param name="lap_id">Lap id</param>
+        /// <param name="caption">New caption lap</param>
+        /// <returns>При успешном изменении ничего не возвращает</returns>
+        /// <response code="200"></response>
+        /// <response code="200">Данные не изменены (Введено аналогичное описание либо нет тренировки/круга)</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpPatch]
+        [Route("Patch/LapCaption/{id}")]
+        async public Task<IActionResult> PatchLapCaption(ulong id, int lap_id, string? caption, IDatabaseFactory factory)
+        {
+            if (caption is null)
+            {
+                return BadRequest("caption is null");
+            }
+            var result = await IPatchFunction.PatchLapCaption(lap_id, id, caption, factory);
+            if (!result)
+                return Ok("No change data (equal or not in DB)");
+
+            return Ok();
         }
     }
 }

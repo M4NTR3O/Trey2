@@ -1,6 +1,7 @@
 ﻿using Trey2.Models;
 using MySqlConnector;
 using System.Linq.Expressions;
+using System.Transactions;
 
 namespace Trey2.DB.IFunction
 {
@@ -8,9 +9,8 @@ namespace Trey2.DB.IFunction
     {
         public static async Task createUser(Models.User _user, IDatabaseFactory factory)
         {
-            var database = factory.Create();
             long newId;
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 string query = @"INSERT INTO user 
@@ -51,15 +51,16 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task createTrackpoint(ulong id, Models.Trackpoint trackpoint, MySqlConnection? connection)
+        public static async Task createTrackpoint(ulong id, Models.Trackpoint trackpoint, uint i, MySqlConnection connection, MySqlTransaction transaction)
         {
             long newId;
             string query = @"INSERT INTO trackpoint 
-                    (training_id, duration_point, distance, latitude, longitude, heart_rate, speed, cadence, power, altitude) 
+                    (trackpoint_id, training_id, duration_point, distance, latitude, longitude, heart_rate, speed, cadence, power, altitude) 
                     VALUES 
-                    (@Training, @Duration_Point, @Distance, @Latitude, @Longitude, @Heart_rate, @Speed, @Cadence, @Power, @Altitude);";
-            using (var command = new MySqlCommand(query, connection))
+                    (@Trackpoint_id, @Training, @Duration_Point, @Distance, @Latitude, @Longitude, @Heart_rate, @Speed, @Cadence, @Power, @Altitude);";
+            using (var command = new MySqlCommand(query, connection, transaction))
             {
+                command.Parameters.Add("Trackpoint_id", MySqlDbType.UInt32).Value = i;
                 command.Parameters.AddWithValue("@Training", id);
                 command.Parameters.Add("@Duration_Point", MySqlDbType.DateTime).Value = trackpoint.duration_point;
                 command.Parameters.AddWithValue("@Distance", (object?)trackpoint.distance ?? DBNull.Value);
@@ -75,19 +76,20 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task createTrainingLap(ulong id, Models.TrainingLap lap, MySqlConnection? connection)
+        public static async Task createTrainingLap(ulong id, Models.TrainingLap lap, ushort i, MySqlConnection? connection, MySqlTransaction transaction)
         {
             long newId;
             string query = @"INSERT INTO training_lap 
-                        (training_id, lap_number, lap_caption, start_time, timestamp, duration, distance,
+                        (training_lap_id, training_id, lap_number, lap_caption, start_time, timestamp, duration, distance,
                         avg_heart_rate, max_heart_rate, min_heart_rate, avg_speed, max_speed, avg_running_cadence,
                         max_running_cadence, avg_power, max_power, total_ascent, total_descent) 
                         VALUES 
-                        (@Training_id, @Lap_number, @Lap_caption, @Start_time, @Timestamp, @Duration, @Distance,
+                        (@Lap_id, @Training_id, @Lap_number, @Lap_caption, @Start_time, @Timestamp, @Duration, @Distance,
                         @Avg_heart_rate, @Max_heart_rate, @Min_heart_rate, @Avg_speed, @Max_speed, @Avg_running_cadence,
                         @Max_running_cadence, @Avg_power, @Max_power, @Total_ascent, @Total_descent);";
-            using (var command = new MySqlCommand(query, connection))
+            using (var command = new MySqlCommand(query, connection, transaction))
             {
+                command.Parameters.Add("Lap_id", MySqlDbType.UInt16).Value = i;
                 command.Parameters.AddWithValue("@Training_id", id);
                 command.Parameters.AddWithValue("@Lap_number", lap.lap_number);
                 command.Parameters.AddWithValue("@Lap_caption", (object?)lap.lap_caption ?? DBNull.Value);
@@ -113,9 +115,8 @@ namespace Trey2.DB.IFunction
 
         public static async Task createTraining(Models.Training training, IDatabaseFactory factory)
         {
-            var database = factory.Create();
             ulong newId;
-            using (var connection = database.CreateNewConnection())
+            using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 using var transaction = await connection.BeginTransactionAsync();
@@ -133,7 +134,7 @@ namespace Trey2.DB.IFunction
                             @Avg_running_cadence, @Max_running_cadence, @Avg_power, @Max_power, @Start_position_lat,
                             @Start_position_long, @Total_ascent, @Total_descent, @Max_altitude, @Calories, @Is_gps, @Stress_score,
                             @Feeling_score, @Comment_sportsman, @Coach_creator, @Comment_coach, @Status_training);";
-                    using (var command = new MySqlCommand(query, connection))
+                    using (var command = new MySqlCommand(query, connection, transaction))
                     {
                         command.Parameters.AddWithValue("@Sportsman", training.sportsman_id);
                         command.Parameters.AddWithValue("@Sport", training.sport_id);
@@ -171,16 +172,20 @@ namespace Trey2.DB.IFunction
 
                     if (training.trackpoints is not null)
                     {
+                        uint i = 1;
                         foreach (Trackpoint tp in training.trackpoints)
                         {
-                            await createTrackpoint(newId, tp, connection);
+                            await createTrackpoint(newId, tp, i, connection, transaction);
+                            i++;
                         }
                     }
                     if (training.laps is not null)
                     {
+                        ushort i = 1;
                         foreach (TrainingLap lap in training.laps)
                         {
-                            await createTrainingLap(newId, lap, connection);
+                            await createTrainingLap(newId, lap, i, connection, transaction);
+                            i++;
                         }
                     }
                     await transaction.CommitAsync();
