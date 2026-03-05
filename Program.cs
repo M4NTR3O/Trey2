@@ -19,7 +19,7 @@ namespace Trey2
             {
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.WithOrigins("https://localhost:3000")
+                    policy.WithOrigins("https://localhost:5120")
                           .AllowAnyMethod()
                           .AllowAnyHeader();
                 });

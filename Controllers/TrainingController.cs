@@ -72,7 +72,7 @@ namespace Trey2.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] Training training, IDatabaseFactory factory)
+        public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] TrainingCreate training, IDatabaseFactory factory)
         {
             using var client = new HttpClient();
 
@@ -105,6 +105,7 @@ namespace Trey2.Controllers
             var validationResults = new List<ValidationResult>();
             var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
             Console.WriteLine($"Валидность данных - {isValid}");
+            ulong id;
             if (isValid)
             {
                 try
@@ -120,7 +121,7 @@ namespace Trey2.Controllers
                     training_python.sport_id = training.sport_id;
                     Console.WriteLine("Загрузка в БД");
                     //Загрузка на сервер итоговая
-                    await ICreateFunction.createTraining(training_python, factory);
+                    id = await ICreateFunction.createTraining(training_python, factory);
                 }
                 catch (Exception ex)
                 {
@@ -131,7 +132,39 @@ namespace Trey2.Controllers
             {
                 return BadRequest("No valid data");
             }
-            return Ok(training_python);
+            return Ok(await IReadFunction.GetFullTraining(id, factory));
+        }
+
+
+        [HttpPost]
+        [Route("CreateTraining")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreateWithoutFile(TrainingCreate training, IDatabaseFactory factory)
+        {
+            var validationContext = new ValidationContext(training);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+            Console.WriteLine($"Валидность данных - {isValid}");
+            ulong id;
+            if (isValid)
+            {
+                try
+                {
+                    //Загрузка на сервер итоговая
+                    await ICreateFunction.createTrainingWithoutFile(training, factory);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+            else
+            {
+                return BadRequest("No valid data");
+            }
+            return Ok(training);
         }
 
         /// <summary>

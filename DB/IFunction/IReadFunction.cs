@@ -167,12 +167,136 @@ namespace Trey2.DB.IFunction
                 
                 if (training is not null)
                 {
-                    training.trackpoints = await GetFullTrackpoint(training_id, connection);
+                    if (training.is_gps)
+                    {
+                        training.trackpoints = await GetLowTrackpoint(training_id, connection);
+                        training.altitudes = await GetAltitudes(training_id, connection);
+                    }
                     training.laps = await GetLapsTraining(training_id, connection);
+                    training.heart_rates = await GetHeartRates(training_id, connection);
+                    training.paces = await GetPaces(training_id, connection);
+                    training.powers = await GetPowers(training_id, connection);
                 }
                 await connection.CloseAsync();
                 return training;
             }
+        }
+
+        public static async Task<List<Altitudes>> GetAltitudes(ulong training_id, MySqlConnection? connection)
+        {
+            List<Altitudes> trackpoints = new List<Altitudes>();
+            string query = @"SELECT `duration_point`, `altitude` FROM `trackpoint` WHERE `training_id` = @training_id;";
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull("altitude"))
+                    {
+                        Altitudes tp = new Altitudes
+                        {
+                            timestamp = reader.GetDateTime("duration_point"),
+                            altitude = reader.GetFloat("altitude")
+                        };
+                        if (tp is not null)
+                        {
+                            trackpoints.Add(tp);
+                        }
+                    }
+                }
+                await reader.CloseAsync();
+            }
+            return trackpoints;
+        }
+
+        public static async Task<List<HeartRates>> GetHeartRates(ulong training_id, MySqlConnection? connection)
+        {
+            List<HeartRates> trackpoints = new List<HeartRates>();
+            string query = @"SELECT `duration_point`, `heart_rate` FROM `trackpoint` WHERE `training_id` = @training_id;";
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull("heart_rate"))
+                    {
+                        HeartRates tp = new HeartRates
+                        {
+                            timestamp = reader.GetDateTime("duration_point"),
+                            heart_rate = reader.GetByte("heart_rate")
+                        };
+                        if (tp is not null)
+                        {
+                            trackpoints.Add(tp);
+                        }
+                    }
+                }
+                await reader.CloseAsync();
+            }
+            return trackpoints;
+        }
+
+        public static async Task<List<Paces>> GetPaces(ulong training_id, MySqlConnection? connection)
+        {
+            List<Paces> trackpoints = new List<Paces>();
+            string query = @"SELECT `duration_point`, `speed` FROM `trackpoint` WHERE `training_id` = @training_id;";
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull("speed"))
+                    {
+                        Paces tp = new Paces
+                        {
+                            timestamp = reader.GetDateTime("duration_point"),
+                            pace = reader.GetFloat("speed")
+                        };
+                        if (tp is not null)
+                        {
+                            trackpoints.Add(tp);
+                        }
+                  
+                    }
+                }
+                await reader.CloseAsync();
+            }
+            return trackpoints;
+        }
+
+        public static async Task<List<Powers>> GetPowers(ulong training_id, MySqlConnection? connection)
+        {
+            List<Powers> trackpoints = new List<Powers>();
+            string query = @"SELECT `duration_point`, `power` FROM `trackpoint` WHERE `training_id` = @training_id;";
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull("power"))
+                    {
+                        Powers tp = new Powers
+                        {
+                            timestamp = reader.GetDateTime("duration_point"),
+                            power = reader.GetUInt16("power")
+                        };
+                        if (tp is not null)
+                        {
+                            trackpoints.Add(tp);
+                        }
+                    }
+                }
+                await reader.CloseAsync();
+            }
+            return trackpoints;
         }
 
         public static async Task<ViewTraining?> GetMidTraining(ulong training_id, IDatabaseFactory factory)
@@ -216,45 +340,42 @@ namespace Trey2.DB.IFunction
                         };
                     }
                 }
-                await connection.CloseAsync();
                 if (training is not null && training.is_gps)
                 {
-                    training.trackpoints = await GetLowTrackpoint(training_id, factory);
+                    training.trackpoints = await GetLowTrackpoint(training_id, connection);
+
                 }
+                await connection.CloseAsync();
                 return training;
             }
         }
 
-        public static async Task<List<Trackpoint>> GetLowTrackpoint(ulong training_id, IDatabaseFactory factory)
+        public static async Task<List<TrackpointView>> GetLowTrackpoint(ulong training_id, MySqlConnection? connection)
         {
             
-            using (var connection = factory.CreateConnection())
+            List<TrackpointView> trackpoints = new List<TrackpointView>();
+            string query = @"SELECT `duration_point`, `latitude`, `longitude` FROM `trackpoint` WHERE `training_id` = @training_id;";
+            using (var command = new MySqlCommand(query, connection))
             {
-                List<Trackpoint> trackpoints = new List<Trackpoint>();
-                await connection.OpenAsync();
-                string query = @"SELECT `duration_point`, `latitude`, `longitude` FROM `trackpoint` WHERE `training_id` = @training_id;";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
-                    var reader = await command.ExecuteReaderAsync();
+                command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                var reader = await command.ExecuteReaderAsync();
 
-                    while (await reader.ReadAsync())
+                while (await reader.ReadAsync())
+                {
+                    TrackpointView tp = new TrackpointView
                     {
-                        Trackpoint tp = new Trackpoint
-                        {
-                            duration_point = reader.GetDateTime("duration_point"),
-                            latitude = reader.IsDBNull("latitude") ? null : reader.GetFloat("latitude"),
-                            longitude = reader.IsDBNull("longitude") ? null : reader.GetFloat("longitude")                            
-                        };
-                        if (tp is not null)
-                        {
-                            trackpoints.Add(tp);
-                        }
+                        duration_point = reader.GetDateTime("duration_point"),
+                        latitude = reader.IsDBNull("latitude") ? null : reader.GetFloat("latitude"),
+                        longitude = reader.IsDBNull("longitude") ? null : reader.GetFloat("longitude")                            
+                    };
+                    if (tp is not null)
+                    {
+                        trackpoints.Add(tp);
                     }
                 }
-                await connection.CloseAsync();
-                return trackpoints;
+                await reader.CloseAsync();
             }
+            return trackpoints;
         }
 
         public static async Task<List<Trackpoint>> GetFullTrackpoint(ulong training_id, MySqlConnection? connection)

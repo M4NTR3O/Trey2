@@ -196,8 +196,15 @@ namespace Trey2.ViewModel
 
         /// <summary>
         ///  List of Trackpoint (may be null)\
-        /// Список трэкпоинтов
+        /// Список трэкпоинтов (формат Timestamp, latitude, longitude)
         /// </summary>
-        public List<Trackpoint>? trackpoints { get; set; }
+        public List<TrackpointView>? trackpoints { get; set; }
+        
+        public List<HeartRates>? heart_rates { get; set; }
+
+        public List<Paces>? paces { get; set; }
+
+        public List<Altitudes>? altitudes { get; set; }
+        public List<Powers>? powers { get; set; }
     }
 }
