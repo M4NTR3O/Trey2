@@ -2,7 +2,13 @@
 {
     public class Powers
     {
-        public DateTime timestamp { get; set; }
-        public ushort power { get; set; }
+        public float timestamp { get; set; }
+        public ushort? power { get; set; }
+
+        public Powers(float timestamp, ushort?  power)
+        {
+            this.power = power;
+            this.timestamp = timestamp;
+        }
     }
 }

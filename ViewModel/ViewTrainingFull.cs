@@ -3,7 +3,7 @@ using Trey2.Models;
 
 namespace Trey2.ViewModel
 {
-    public class ViewTraining: BaseModel
+    public class ViewTrainingFull: BaseModel
     {
         /// <summary>
         /// Sportsman ID - unsigned long (bigint)\
@@ -198,7 +198,7 @@ namespace Trey2.ViewModel
         ///  List of Trackpoint (may be null)\
         /// Список трэкпоинтов (формат Timestamp, latitude, longitude)
         /// </summary>
-        public List<TrackpointView>? trackpoints { get; set; }
+        public List<TrackpointViewFull>? trackpoints { get; set; }
         
         public List<HeartRates>? heart_rates { get; set; }
 
@@ -206,5 +206,7 @@ namespace Trey2.ViewModel
 
         public List<Altitudes>? altitudes { get; set; }
         public List<Powers>? powers { get; set; }
+        public List<Cadences>? cadences { get; set; }
+        public List<Pauses>? pauses { get; set; }
     }
 }

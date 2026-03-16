@@ -4,6 +4,7 @@ using System.Data;
 using System.Reflection.PortableExecutable;
 using Trey2.Models;
 using Trey2.ViewModel;
+using Trey2.ViewModels;
 
 namespace Trey2.DB.IFunction
 {
@@ -102,12 +103,13 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task<ViewTraining?> GetFullTraining(ulong training_id, IDatabaseFactory factory)
+        public static async Task<(ViewTrainingFull?, List<TrackpointGraph>)> GetFullTraining(ulong training_id, IDatabaseFactory factory)
         {
             
             using(var connection = factory.CreateConnection())
             {
-                ViewTraining? training = null;
+                ViewTrainingFull? training = null;
+                List<TrackpointGraph> result = new();
                 await connection.OpenAsync();
                 string query = @"SELECT `training_id`, `sportsman_id`, SP.`sport_name` AS sport, TT.`type_training_name` AS type_training, `name_training`, `time_start`, " +
                     @"`duration`, `distance`, `avg_speed`, `total_ascent`, `calories`, `is_gps`, `local_timestamp`, " +
@@ -125,7 +127,7 @@ namespace Trey2.DB.IFunction
                     var reader = await command.ExecuteReaderAsync();
                     while(await reader.ReadAsync())
                     {
-                        training = new ViewTraining
+                        training = new ViewTrainingFull
                         {
                             id = reader.GetUInt64("training_id"),
                             sportsman_id = reader.GetUInt64("sportsman_id"),
@@ -167,22 +169,15 @@ namespace Trey2.DB.IFunction
                 
                 if (training is not null)
                 {
-                    if (training.is_gps)
-                    {
-                        training.trackpoints = await GetLowTrackpoint(training_id, connection);
-                        training.altitudes = await GetAltitudes(training_id, connection);
-                    }
+                    result = await GetFullTrackpoint(training_id, connection);
                     training.laps = await GetLapsTraining(training_id, connection);
-                    training.heart_rates = await GetHeartRates(training_id, connection);
-                    training.paces = await GetPaces(training_id, connection);
-                    training.powers = await GetPowers(training_id, connection);
                 }
                 await connection.CloseAsync();
-                return training;
+                return (training, result);
             }
         }
 
-        public static async Task<List<Altitudes>> GetAltitudes(ulong training_id, MySqlConnection? connection)
+        /*public static async Task<List<Altitudes>> GetAltitudes(ulong training_id, MySqlConnection? connection)
         {
             List<Altitudes> trackpoints = new List<Altitudes>();
             string query = @"SELECT `duration_point`, `altitude` FROM `trackpoint` WHERE `training_id` = @training_id;";
@@ -209,9 +204,9 @@ namespace Trey2.DB.IFunction
                 await reader.CloseAsync();
             }
             return trackpoints;
-        }
+        }*/
 
-        public static async Task<List<HeartRates>> GetHeartRates(ulong training_id, MySqlConnection? connection)
+        /*public static async Task<List<HeartRates>> GetHeartRates(ulong training_id, MySqlConnection? connection)
         {
             List<HeartRates> trackpoints = new List<HeartRates>();
             string query = @"SELECT `duration_point`, `heart_rate` FROM `trackpoint` WHERE `training_id` = @training_id;";
@@ -238,9 +233,9 @@ namespace Trey2.DB.IFunction
                 await reader.CloseAsync();
             }
             return trackpoints;
-        }
+        }*/
 
-        public static async Task<List<Paces>> GetPaces(ulong training_id, MySqlConnection? connection)
+        /*public static async Task<List<Paces>> GetPaces(ulong training_id, MySqlConnection? connection)
         {
             List<Paces> trackpoints = new List<Paces>();
             string query = @"SELECT `duration_point`, `speed` FROM `trackpoint` WHERE `training_id` = @training_id;";
@@ -268,9 +263,9 @@ namespace Trey2.DB.IFunction
                 await reader.CloseAsync();
             }
             return trackpoints;
-        }
+        }*/
 
-        public static async Task<List<Powers>> GetPowers(ulong training_id, MySqlConnection? connection)
+        /*public static async Task<List<Powers>> GetPowers(ulong training_id, MySqlConnection? connection)
         {
             List<Powers> trackpoints = new List<Powers>();
             string query = @"SELECT `duration_point`, `power` FROM `trackpoint` WHERE `training_id` = @training_id;";
@@ -297,14 +292,14 @@ namespace Trey2.DB.IFunction
                 await reader.CloseAsync();
             }
             return trackpoints;
-        }
+        }*/
 
-        public static async Task<ViewTraining?> GetMidTraining(ulong training_id, IDatabaseFactory factory)
+        public static async Task<ViewTrainingMid?> GetMidTraining(ulong training_id, IDatabaseFactory factory)
         {
             
             using (var connection = factory.CreateConnection())
             {
-                ViewTraining? training = null;
+                ViewTrainingMid? training = null;
                 await connection.OpenAsync();
                 string query = @"SELECT `training_id`, `sportsman_id`, SP.`sport_name` AS sport, TT.`type_training_name` AS type_training, `name_training`, `time_start`, " +
                     @"`duration`, `distance`, `avg_speed`, `total_ascent`, `calories`, `is_gps`, `local_timestamp`, S.`status_caption` as status_caption FROM `training` AS T" +
@@ -321,7 +316,7 @@ namespace Trey2.DB.IFunction
                     {
                         var dt = reader.GetDateTime("time_start");
                         Console.WriteLine(dt.Kind);
-                        training = new ViewTraining
+                        training = new ViewTrainingMid
                         {
                             id = reader.GetUInt64("training_id"),
                             sportsman_id = reader.GetUInt64("sportsman_id"),
@@ -339,6 +334,7 @@ namespace Trey2.DB.IFunction
                             status_training = reader.GetString("status_caption")
                         };
                     }
+                    await reader.CloseAsync();
                 }
                 if (training is not null && training.is_gps)
                 {
@@ -378,9 +374,9 @@ namespace Trey2.DB.IFunction
             return trackpoints;
         }
 
-        public static async Task<List<Trackpoint>> GetFullTrackpoint(ulong training_id, MySqlConnection? connection)
+        public static async Task<List<TrackpointGraph>> GetFullTrackpoint(ulong training_id, MySqlConnection? connection)
         {
-            List<Trackpoint> trackpoints = new List<Trackpoint>();
+            List<TrackpointGraph> trackpoints = new List<TrackpointGraph>();
             string query = @"SELECT `duration_point`, `latitude`, `longitude`," +
                 @"`distance`, `heart_rate`, `speed`, `cadence`, `power`, `altitude`" +
                 @" FROM `trackpoint` WHERE `training_id` = @training_id;";
@@ -391,9 +387,9 @@ namespace Trey2.DB.IFunction
 
                 while (await reader.ReadAsync())
                 {
-                    Trackpoint tp = new Trackpoint
+                    TrackpointGraph tp = new TrackpointGraph
                     {
-                        duration_point = reader.GetDateTime("duration_point"),
+                        TimeStartDt = reader.GetDateTime("duration_point"),
                         latitude = reader.IsDBNull("latitude") ? null : reader.GetFloat("latitude"),
                         longitude = reader.IsDBNull("longitude") ? null : reader.GetFloat("longitude"),
                         distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),

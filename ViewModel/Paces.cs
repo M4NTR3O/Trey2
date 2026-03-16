@@ -2,7 +2,13 @@
 {
     public class Paces
     {
-        public DateTime timestamp { get; set; }
-        public float pace { get; set; }
+        public float timestamp { get; set; }
+        public float? pace { get; set; }
+
+        public Paces(float timestamp, float? pace)
+        {
+            this.pace = pace;
+            this.timestamp = timestamp;
+        }
     }
 }

@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using MessagePack;
+using MessagePack.Resolvers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Xml.Linq;
 using Trey2.DB;
@@ -177,7 +180,7 @@ namespace Trey2.Controllers
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
         [Route("Get/{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTraining))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetFullTraining(ulong id, IDatabaseFactory factory)
@@ -186,13 +189,33 @@ namespace Trey2.Controllers
             {
                 return BadRequest("ID является не натуральным числом");
             }
-            var training = await IReadFunction.GetFullTraining(id, factory);
+            var (training, points) = await IReadFunction.GetFullTraining(id, factory);
             if (training == null)
             {
                 return BadRequest("Подан ошибочный id");
             }
             else
             {
+                //Отправляем запрос на преобразование данных
+                using var client = new HttpClient();
+                TrainingGraphData data = new TrainingGraphData{TimeStartDt = training.time_start, trackpoints = points, is_gps = training.is_gps };
+                var options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
+                byte[] bytes = MessagePackSerializer.Serialize(data, options);
+                var content = new ByteArrayContent(bytes);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
+                var response = await client.PostAsync(
+                    "http://localhost:8001/data_to_graph",
+                    content
+                );
+                //Обработка результатов
+                var result = await response.Content.ReadFromJsonAsync<GraphModel>();
+                training.powers = result.GetPowers();
+                training.heart_rates = result.GetHeart_rates();
+                training.trackpoints = result.GetTrackpoints();
+                training.paces = result.GetPaces();
+                training.cadences = result.GetCadences();
+                training.pauses = result.pauses;
+                training.altitudes = result.GetAltitudes();
                 return Ok(training);
             }
         }
