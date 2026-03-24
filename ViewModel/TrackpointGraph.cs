@@ -1,4 +1,6 @@
 ﻿using MessagePack;
+using System.Collections.Generic;
+using Trey2.Models;
 
 namespace Trey2.ViewModels
 {
@@ -26,5 +28,28 @@ namespace Trey2.ViewModels
         public ushort? power { get; set; }
         [Key("cadence")]
         public ushort? cadence { get; set; }
+        public static List<TrackpointGraph> TrackpointToTrackpointGraph(List<Trackpoint>? tps)
+        {
+            List<TrackpointGraph>? pts = new List<TrackpointGraph>();
+            if (tps is not null){
+                foreach (var tp in tps)
+                {
+                    TrackpointGraph pt = new TrackpointGraph
+                    {
+                        TimeStartDt = tp.duration_point,
+                        heart_rate = tp.heart_rate,
+                        latitude = tp.latitude,
+                        longitude = tp.longitude,
+                        altitude = tp.altitude,
+                        speed = tp.speed,
+                        distance = tp.distance,
+                        power = tp.power,
+                        cadence = tp.cadence
+                    };
+                    pts.Add(pt);
+                }
+            }
+            return pts;
+        }
     }
 }

@@ -202,7 +202,7 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task createTrainingWithoutFile(TrainingCreate training, IDatabaseFactory factory)
+        public static async Task<ulong> createTrainingWithoutFile(TrainingCreate training, IDatabaseFactory factory)
         {
             ulong newId = 0;
             using (var connection = factory.CreateConnection())
@@ -253,9 +253,11 @@ namespace Trey2.DB.IFunction
                     command.Parameters.AddWithValue("@Comment_coach", (object?)training.comment_coach ?? DBNull.Value);
                     command.Parameters.AddWithValue("@Status_training", (object?)training.status_training ?? DBNull.Value);
                     await command.ExecuteNonQueryAsync();
+                    newId = (ulong)command.LastInsertedId;
                 }
                 await connection.CloseAsync();
             }
+            return newId;
         }
     }
 }

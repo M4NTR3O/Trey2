@@ -177,6 +177,59 @@ namespace Trey2.DB.IFunction
             }
         }
 
+
+        public static async Task<ViewTrainingFull?> GetTrainingCreateWithoutFiles(ulong training_id, IDatabaseFactory factory)
+        {
+
+            using (var connection = factory.CreateConnection())
+            {
+                ViewTrainingFull? training = null;
+                await connection.OpenAsync();
+                string query = @"SELECT `training_id`, `sportsman_id`, SP.`sport_name` AS sport, TT.`type_training_name` AS type_training, `name_training`, `time_start`, " +
+                    @"`duration`, `distance`, `avg_speed`, `calories`, `is_gps`, `local_timestamp`, " +
+                    @"`avg_heart_rate`, `stress_score`, `feeling_score`, `comment_sportsman`," +
+                    @"`coach_creator`, `comment_coach`, S.`status_caption` as status_caption FROM `training` AS T" +
+                    @" INNER JOIN status_training AS S ON S.status_id = T.status_training_id" +
+                    @" INNER JOIN type_training AS TT ON TT.type_training_id = T.type_training_id" +
+                    @" INNER JOIN sport AS SP ON SP.sport_id = T.sport_id" +
+                    @" WHERE `training_id` = @training_id;";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                    var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        training = new ViewTrainingFull
+                        {
+                            id = reader.GetUInt64("training_id"),
+                            sportsman_id = reader.GetUInt64("sportsman_id"),
+                            //Поправить после проверки
+                            sport = reader.GetString("sport"),
+                            type_training = reader.GetString("type_training"),
+                            name_training = reader.IsDBNull("name_training") ? null : reader.GetString("name_training"),
+                            time_start = reader.GetDateTime("time_start"),
+                            duration = reader.GetFloat("duration"),
+                            distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),
+                            avg_speed = reader.IsDBNull("avg_speed") ? null : reader.GetFloat("avg_speed"),
+                            calories = reader.IsDBNull("calories") ? null : reader.GetUInt16("calories"),
+                            local_timestamp = reader.GetDateTime("local_timestamp"),
+                            is_gps = reader.GetBoolean("is_gps"),
+                            avg_heart_rate = reader.IsDBNull("avg_heart_rate") ? null : reader.GetByte("avg_heart_rate"),
+                            stress_score = reader.IsDBNull("stress_score") ? null : reader.GetByte("stress_score"),
+                            feeling_score = reader.IsDBNull("feeling_score") ? null : reader.GetByte("feeling_score"),
+                            comment_sportsman = reader.IsDBNull("comment_sportsman") ? null : reader.GetString("comment_sportsman"),
+                            coach_creator = reader.IsDBNull("coach_creator") ? null : reader.GetUInt64("coach_creator"),
+                            comment_coach = reader.IsDBNull("comment_coach") ? null : reader.GetString("comment_coach"),
+                            status_training = reader.IsDBNull("status_caption") ? null : reader.GetString("status_caption")
+                        };
+                    }
+                    await reader.CloseAsync();
+                }
+                await connection.CloseAsync();
+                return training;
+            }
+        }
+
         /*public static async Task<List<Altitudes>> GetAltitudes(ulong training_id, MySqlConnection? connection)
         {
             List<Altitudes> trackpoints = new List<Altitudes>();

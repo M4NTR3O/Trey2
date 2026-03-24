@@ -33,21 +33,18 @@ namespace Trey2.ViewModel
         /// Time when training is start (format UTC) - datetime\
         /// Время начала тренировки (Формат UTC)
         /// </summary>
-        [Required]
         required public DateTime time_start { get; set; }
 
         /// <summary>
         /// Time when training is start (Local time) (OR time, when training is end - будет стандартизироваться) - datetime\
         /// Время начала тренировки (Локальное время) (Или время, когда заканчивается тренировка (UTC формат) - будет стандартизироваться
         /// </summary>
-        [Required]
         required public DateTime local_timestamp { get; set; }
 
         /// <summary>
         /// Training duration  - float\
         /// Продолжительность тренировки
         /// </summary>
-        [Required]
         required public float duration { get; set; }
 
         /// <summary>

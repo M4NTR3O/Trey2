@@ -11,6 +11,7 @@ using Trey2.DB;
 using Trey2.DB.IFunction;
 using Trey2.Models;
 using Trey2.ViewModel;
+using Trey2.ViewModels;
 
 namespace Trey2.Controllers
 {
@@ -24,55 +25,13 @@ namespace Trey2.Controllers
         /// <param name="file">File *.fit, *.tcx, *.gpx</param>
         /// <param name="training">Training</param>
         /// <param name="factory"></param>
-        /// <remarks>
-        /// Need fill data marked with "/!", data that is not required is marked with "/*", fill in the remaining data as in the example  
-        /// Sample request:
-        /// 
-        ///     POST api/TrainingController/upload-training
-        ///     {
-        ///         "id": 0,
-        ///         "sportsman_id": 1, /!
-        ///         "sport_id": 1, /!
-        ///         "type_training": 1, /!
-        ///         "name_training": "Контрольный бег (3 км)", /*
-        ///         "time_start": "2026-02-11T07:32:31.916Z",
-        ///         "local_timestamp": "2026-02-11T07:32:31.916Z",
-        ///         "duration": 0,
-        ///         "distance": 0,
-        ///         "avg_heart_rate": 0,
-        ///         "min_heart_rate": 0,
-        ///         "max_heart_rate": 0,
-        ///         "avg_speed": 0,
-        ///         "max_speed": 0,
-        ///         "avg_running_cadence": 0,
-        ///         "max_running_cadence": 0,
-        ///         "avg_power": 0,
-        ///         "max_power": 0,
-        ///         "total_descent": 0,
-        ///         "total_ascent": 0,
-        ///         "start_position_lat": 0,
-        ///         "start_position_long": 0,
-        ///         "max_altituide": 0,
-        ///         "calories": 0,
-        ///         "is_gps": false,
-        ///         "stress_score": 9, /*
-        ///         "feeling_score": 3, /*
-        ///         "comment_portsman": "Hard working", /*
-        ///         "coach_creator": null, /*
-        ///         "comment_coach": null, 
-        ///         "status_training": 1,
-        ///         "laps": null,
-        ///         "trackpoints": null
-        ///     }
-        ///     
-        /// </remarks>
         /// <returns>Загружает тренировочную сессию на сервер и возвращает данные о ней</returns>
         /// <response code="201">Создаёт тренировку и возвращает данные о ней</response>
         /// <response code="400">Данные не валидны</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPost]
         [Route("upload-training")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ViewTrainingFull))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] TrainingCreate training, IDatabaseFactory factory)
@@ -125,6 +84,7 @@ namespace Trey2.Controllers
                     Console.WriteLine("Загрузка в БД");
                     //Загрузка на сервер итоговая
                     id = await ICreateFunction.createTraining(training_python, factory);
+                    //Подготовить данные для отображения! Функция перевода данных в TrainingView (имеющихся) и вызов функции
                 }
                 catch (Exception ex)
                 {
@@ -134,14 +94,33 @@ namespace Trey2.Controllers
             else
             {
                 return BadRequest("No valid data");
-            }
-            return Ok(await IReadFunction.GetFullTraining(id, factory));
+            }           
+            var (view_training, points) = await IReadFunction.GetFullTraining(id, factory);
+            TrainingGraphData data = new TrainingGraphData { TimeStartDt = view_training.time_start, trackpoints = points, is_gps = view_training.is_gps };
+            var options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
+            byte[] bytes = MessagePackSerializer.Serialize(data, options);
+            var content_second = new ByteArrayContent(bytes);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
+            var response_second = await client.PostAsync(
+                "http://localhost:8001/data_to_graph",
+                content_second
+            );
+            //Обработка результатов
+            var result = await response_second.Content.ReadFromJsonAsync<GraphModel>();
+            view_training.powers = result.GetPowers();
+            view_training.heart_rates = result.GetHeart_rates();
+            view_training.trackpoints = result.GetTrackpoints();
+            view_training.paces = result.GetPaces();
+            view_training.cadences = result.GetCadences();
+            view_training.pauses = result.pauses;
+            view_training.altitudes = result.GetAltitudes();
+            return Ok(view_training);
         }
 
 
         [HttpPost]
         [Route("CreateTraining")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ViewTrainingFull))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateWithoutFile(TrainingCreate training, IDatabaseFactory factory)
@@ -156,7 +135,7 @@ namespace Trey2.Controllers
                 try
                 {
                     //Загрузка на сервер итоговая
-                    await ICreateFunction.createTrainingWithoutFile(training, factory);
+                    id = await ICreateFunction.createTrainingWithoutFile(training, factory);
                 }
                 catch (Exception ex)
                 {
@@ -167,7 +146,9 @@ namespace Trey2.Controllers
             {
                 return BadRequest("No valid data");
             }
-            return Ok(training);
+            //Функция переход с TrainigCreate в TrainingView
+            var view_training = await IReadFunction.GetTrainingCreateWithoutFiles(id, factory);
+            return Ok(view_training);
         }
 
         /// <summary>
@@ -233,6 +214,9 @@ namespace Trey2.Controllers
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
         [Route("GetLow")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<LowTraining>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetLowTrainings(ulong sportsman_id, DateTime start, DateTime end, IDatabaseFactory factory)
         {
             if (end < start)
@@ -261,6 +245,9 @@ namespace Trey2.Controllers
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
         [Route("GetMid/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingMid))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetMidTraining(ulong id, IDatabaseFactory factory)
         {
             if (id < 1)
