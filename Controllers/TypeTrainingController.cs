@@ -6,7 +6,7 @@ using Trey2.DB;
 namespace Trey2.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class TypeTrainingController : ControllerBase
     {
         /// <summary>

@@ -12,7 +12,7 @@ namespace Trey2.Controllers
     /// A controller for interacting with the "User" model
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class UserController : ControllerBase
     {
         /// <summary>

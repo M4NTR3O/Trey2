@@ -16,7 +16,7 @@ using Trey2.ViewModels;
 namespace Trey2.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class TrainingController : ControllerBase
     {
         /// <summary>
@@ -48,7 +48,7 @@ namespace Trey2.Controllers
             );
             Console.WriteLine($"Отправка запроса на Python-Server {DateTime.UtcNow}");
             var response = await client.PostAsync(
-                "http://localhost:8001/convert",
+                "http://localhost/py/convert",
                 content
             );
             Console.WriteLine($"Получен ответ с Python-Server {DateTime.UtcNow}");
@@ -102,7 +102,7 @@ namespace Trey2.Controllers
             var content_second = new ByteArrayContent(bytes);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
             var response_second = await client.PostAsync(
-                "http://localhost:8001/data_to_graph",
+                "http://localhost/py/data_to_graph",
                 content_second
             );
             //Обработка результатов
@@ -177,27 +177,34 @@ namespace Trey2.Controllers
             }
             else
             {
-                //Отправляем запрос на преобразование данных
-                using var client = new HttpClient();
-                TrainingGraphData data = new TrainingGraphData{TimeStartDt = training.time_start, trackpoints = points, is_gps = training.is_gps };
-                var options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
-                byte[] bytes = MessagePackSerializer.Serialize(data, options);
-                var content = new ByteArrayContent(bytes);
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
-                var response = await client.PostAsync(
-                    "http://localhost:8001/data_to_graph",
-                    content
-                );
-                //Обработка результатов
-                var result = await response.Content.ReadFromJsonAsync<GraphModel>();
-                training.powers = result.GetPowers();
-                training.heart_rates = result.GetHeart_rates();
-                training.trackpoints = result.GetTrackpoints();
-                training.paces = result.GetPaces();
-                training.cadences = result.GetCadences();
-                training.pauses = result.pauses;
-                training.altitudes = result.GetAltitudes();
-                return Ok(training);
+                try
+                {
+                    //Отправляем запрос на преобразование данных
+                    using var client = new HttpClient();
+                    TrainingGraphData data = new TrainingGraphData { TimeStartDt = training.time_start, trackpoints = points, is_gps = training.is_gps };
+                    var options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
+                    byte[] bytes = MessagePackSerializer.Serialize(data, options);
+                    var content = new ByteArrayContent(bytes);
+                    content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
+                    var response = await client.PostAsync(
+                        "http://localhost/py/data_to_graph",
+                        content
+                    );
+                    //Обработка результатов
+                    var result = await response.Content.ReadFromJsonAsync<GraphModel>();
+                    training.powers = result.GetPowers();
+                    training.heart_rates = result.GetHeart_rates();
+                    training.trackpoints = result.GetTrackpoints();
+                    training.paces = result.GetPaces();
+                    training.cadences = result.GetCadences();
+                    training.pauses = result.pauses;
+                    training.altitudes = result.GetAltitudes();
+                    return Ok(training);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
             }
         }
 

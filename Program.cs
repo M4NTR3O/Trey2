@@ -42,7 +42,6 @@ namespace Trey2
 
             var app = builder.Build();
             app.UseCors("AllowAll");
-            app.UsePathBase("/api");
             app.UseMiddleware<RequestLoggingMiddleware>();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
