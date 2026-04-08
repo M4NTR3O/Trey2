@@ -17,7 +17,7 @@ namespace Trey2.Controllers
 {
 
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class TrainingController : ControllerBase
     {
 

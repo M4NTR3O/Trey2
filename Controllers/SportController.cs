@@ -9,7 +9,7 @@ namespace Trey2.Controllers
     /// A controller for interacting with the "Sport" model
     /// </summary>
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class SportController: ControllerBase
     {
         /// <summary>
