@@ -15,10 +15,12 @@ using Trey2.ViewModels;
 
 namespace Trey2.Controllers
 {
+
     [ApiController]
     [Route("[controller]")]
     public class TrainingController : ControllerBase
     {
+
         /// <summary>
         /// Upload training files on server and return data about it
         /// </summary>
@@ -34,9 +36,10 @@ namespace Trey2.Controllers
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ViewTrainingFull))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] TrainingCreate training, IDatabaseFactory factory)
+        public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] TrainingCreate training, IDatabaseFactory factory, IHttpClientFactory clientFactory)
         {
-            using var client = new HttpClient();
+
+            using var client = clientFactory.CreateClient("python");
 
             using var content = new MultipartFormDataContent();
             await using var fs = file.OpenReadStream();
@@ -48,7 +51,7 @@ namespace Trey2.Controllers
             );
             Console.WriteLine($"Отправка запроса на Python-Server {DateTime.UtcNow}");
             var response = await client.PostAsync(
-                "http://localhost/py/convert",
+                "/convert",
                 content
             );
             Console.WriteLine($"Получен ответ с Python-Server {DateTime.UtcNow}");
@@ -102,7 +105,7 @@ namespace Trey2.Controllers
             var content_second = new ByteArrayContent(bytes);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
             var response_second = await client.PostAsync(
-                "http://localhost/py/data_to_graph",
+                "/data_to_graph",
                 content_second
             );
             //Обработка результатов
@@ -164,8 +167,9 @@ namespace Trey2.Controllers
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetFullTraining(ulong id, IDatabaseFactory factory)
+        public async Task<IActionResult> GetFullTraining(ulong id, IDatabaseFactory factory, IHttpClientFactory clientFactory)
         {
+            
             if (id < 1)
             {
                 return BadRequest("ID является не натуральным числом");
@@ -180,14 +184,14 @@ namespace Trey2.Controllers
                 try
                 {
                     //Отправляем запрос на преобразование данных
-                    using var client = new HttpClient();
+                    using var client = clientFactory.CreateClient("python");
                     TrainingGraphData data = new TrainingGraphData { TimeStartDt = training.time_start, trackpoints = points, is_gps = training.is_gps };
                     var options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
                     byte[] bytes = MessagePackSerializer.Serialize(data, options);
                     var content = new ByteArrayContent(bytes);
                     content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
                     var response = await client.PostAsync(
-                        "http://localhost/py/data_to_graph",
+                        "/data_to_graph",
                         content
                     );
                     //Обработка результатов
@@ -259,7 +263,7 @@ namespace Trey2.Controllers
         {
             if (id < 1)
             {
-                return BadRequest("ID являентся не натуральным числом");
+                return BadRequest("ID является не натуральным числом");
             }
             var training = await IReadFunction.GetMidTraining(id, factory);
             if (training == null)

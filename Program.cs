@@ -19,7 +19,7 @@ namespace Trey2
             {
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.WithOrigins("http://localhost:3000")
+                    policy.AllowAnyOrigin()
                           .AllowAnyMethod()
                           .AllowAnyHeader();
                 });
@@ -27,6 +27,10 @@ namespace Trey2
             // Add services to the container.
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IDatabaseFactory, DatabaseFactory>();
+            builder.Services.AddHttpClient("python", client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["PythonApi:BaseUrl"]);
+            });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddSwaggerGen(options =>
             {
