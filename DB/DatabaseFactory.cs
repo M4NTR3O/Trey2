@@ -8,11 +8,11 @@ namespace Trey2.DB
         private readonly string _connectionString;
         public DatabaseFactory(IConfiguration config)
         {
-            var host = config["Database:Host"];
-            var port = config["Database:Port"];
-            var user = config["Database:User"];
-            var password = config["Database:Password"];
-            var database = config["Database:Name"];
+            var host = config["DB:HOST"];
+            var port = config["DB:PORT"];
+            var user = config["DB:USER"];
+            var password = config["DB:PASSWORD"];
+            var database = config["DB:NAME"];
 
             _connectionString = $"server={host};port={port};user={user};password={password};database={database};UseAffectedRows=true;";
         }

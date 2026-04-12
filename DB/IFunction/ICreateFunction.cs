@@ -259,5 +259,28 @@ namespace Trey2.DB.IFunction
             }
             return newId;
         }
+
+        public static async Task SaveRefreshToken(ulong userId, string refreshToken, IDatabaseFactory factory)
+        {
+            var hash = TokenHasher.Hash(refreshToken);
+
+            using (var connection = factory.CreateConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"
+            INSERT INTO refresh_tokens(user_id, token_hash, expires_at)
+            VALUES (@uid, @hash, @exp)";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@uid", userId);
+                    command.Parameters.AddWithValue("@hash", hash);
+                    command.Parameters.AddWithValue("@exp", DateTime.UtcNow.AddDays(7));
+
+                    await command.ExecuteNonQueryAsync();
+                }
+                await connection.CloseAsync();
+            }
+            
+        }
     }
 }

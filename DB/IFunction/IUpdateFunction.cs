@@ -36,7 +36,7 @@ namespace Trey2.DB.IFunction
         }
 
         //Update Training
-        public static async Task UpdateTraining(Training training, IDatabaseFactory factory)
+        public static async Task UpdateTraining(Training training, ulong user_id, IDatabaseFactory factory)
         {
             training.avg_speed = training.distance is not null? training.distance / training.duration: null;
             using (var connection = factory.CreateConnection())
@@ -45,7 +45,7 @@ namespace Trey2.DB.IFunction
                 using (var command = new MySqlCommand(@"UPDATE `training` SET sport_id = @Sport, type_training_id = @Type_Training,
                                                           name_training = @Name, duration = @Duration, distance = @Distance,
                                                           avg_speed = @Speed, calories = @Calories, stress_score = @Stress_score, feeling_score = @Feeling_score,
-                                                          comment_sportsman = @Comment WHERE training_id = @Id;", connection))
+                                                          comment_sportsman = @Comment WHERE training_id = @Id AND sportsman_id = @user_id;", connection))
                 {
                     command.Parameters.Add("@Sport", MySqlDbType.UByte).Value = training.sport_id;
                     command.Parameters.Add("@Type_Training", MySqlDbType.UByte).Value = training.type_training_id;
@@ -58,7 +58,7 @@ namespace Trey2.DB.IFunction
                     command.Parameters.Add("@Feeling_score", MySqlDbType.UByte).Value = training.feeling_score;
                     command.Parameters.Add("@Comment", MySqlDbType.String).Value = (object?)training.comment_sportsman ?? DBNull.Value;
                     command.Parameters.Add("@Id", MySqlDbType.UInt64).Value = training.id;
-
+                    command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = user_id;
                     await command.ExecuteNonQueryAsync();
                 }
                 await connection.CloseAsync();

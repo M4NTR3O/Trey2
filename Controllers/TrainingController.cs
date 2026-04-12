@@ -1,10 +1,12 @@
 ﻿using MessagePack;
 using MessagePack.Resolvers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Xml.Linq;
 using Trey2.DB;
@@ -31,6 +33,7 @@ namespace Trey2.Controllers
         /// <response code="201">Создаёт тренировку и возвращает данные о ней</response>
         /// <response code="400">Данные не валидны</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpPost]
         [Route("upload-training")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ViewTrainingFull))]
@@ -120,7 +123,7 @@ namespace Trey2.Controllers
             return Ok(view_training);
         }
 
-
+        [Authorize]
         [HttpPost]
         [Route("CreateTraining")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ViewTrainingFull))]
@@ -163,18 +166,19 @@ namespace Trey2.Controllers
         /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
+        [Authorize]
         [Route("Get/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetFullTraining(ulong id, IDatabaseFactory factory, IHttpClientFactory clientFactory)
         {
-            
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (id < 1)
             {
                 return BadRequest("ID является не натуральным числом");
             }
-            var (training, points) = await IReadFunction.GetFullTraining(id, factory);
+            var (training, points) = await IReadFunction.GetFullTraining(id, id_user, factory);
             if (training == null)
             {
                 return BadRequest("Подан ошибочный id");
@@ -217,31 +221,35 @@ namespace Trey2.Controllers
         /// </summary>
         /// <param name="sportsman_id">ID Sportsman</param>
         /// <param name="start">The start date of the segment including id</param>
-        /// <param name="end">The start end of the segment including id</param>
+        /// <param name="end">The end sate of the segment including id</param>
+        /// <param name="start_report">The start date for report of the segment including id</param>
+        /// <param name="end_report">The end date for report of the segment including id</param>
         /// <param name="factory"></param>
         /// <returns>Возвращает краткую информацию о тренировочных активностях с даты начала по дате конца, включая их</returns>
         /// <response code="200">Возвращает краткие данные о тренировочных сессиях за период</response>
         /// <response code="400">Неправильно задан диапазон времени; Нет данных</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
+        [Authorize]
         [Route("GetLow")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<LowTraining>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CalendarViewer))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLowTrainings(ulong sportsman_id, DateTime start, DateTime end, IDatabaseFactory factory)
+        public async Task<IActionResult> GetLowTrainings(DateTime start, DateTime end, DateTime start_report, DateTime end_report, IDatabaseFactory factory)
         {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (end < start)
             {
                 return BadRequest("Неправильно задан диапазон времени");
             }
-            var trainings = await IReadFunction.GetPeriodTrainings(sportsman_id, start, end, factory);
-            if (trainings == null)
+            var calendarViewer = await IReadFunction.GetPeriodTrainings(id_user, start, end, start_report, end_report, factory);
+            if (calendarViewer.trainings == null)
             {
                 return BadRequest("Нет данных");
             }
             else
             {
-                return Ok(trainings);
+                return Ok(calendarViewer);
             }
         }
 
@@ -255,17 +263,19 @@ namespace Trey2.Controllers
         /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
+        [Authorize]
         [Route("GetMid/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingMid))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetMidTraining(ulong id, IDatabaseFactory factory)
         {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (id < 1)
             {
                 return BadRequest("ID является не натуральным числом");
             }
-            var training = await IReadFunction.GetMidTraining(id, factory);
+            var training = await IReadFunction.GetMidTraining(id, id_user, factory);
             if (training == null)
             {
                 return BadRequest("Подан ошибочный id");
@@ -284,14 +294,16 @@ namespace Trey2.Controllers
         /// <response code="400">ID является не натуральным числом</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpDelete]
+        [Authorize]
         [Route("Delete/{id}")]
         async public Task<ActionResult> DeleteTraining(ulong id, IDatabaseFactory factory)
         {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (id < 1)
             {
                 return BadRequest("ID являентся не натуральным числом");
             }
-            var result = await IDeleteFunction.DeleteTraining(id, factory);
+            var result = await IDeleteFunction.DeleteTraining(id, id_user, factory);
             if (!result)
                 return Ok("No change data (equal or not in DB)");
 
@@ -306,9 +318,11 @@ namespace Trey2.Controllers
         /// <param name="training">Model training</param>
         /// <returns></returns>
         [HttpPut]
+        [Authorize]
         [Route("Update")]
         async public Task<ActionResult> UpdateTraining(Training training, IDatabaseFactory factory)
         {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             var validationContext = new ValidationContext(training);
             var validationResults = new List<ValidationResult>();
             var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
@@ -316,7 +330,7 @@ namespace Trey2.Controllers
             {
                 try
                 {
-                    await IUpdateFunction.UpdateTraining(training, factory);
+                    await IUpdateFunction.UpdateTraining(training, id_user, factory);
                     return Ok();
                 }
                 catch (Exception ex)
@@ -341,10 +355,12 @@ namespace Trey2.Controllers
         /// <response code="200">Данные не изменены (Введено аналогичное имя либо нет тренировки)</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPatch]
+        [Authorize]
         [Route("Patch/Name/{id}")]
         async public Task<IActionResult> PatchNameTraining(ulong id, [MaxLength(100)] string name, IDatabaseFactory factory)
         {
-            var result = await IPatchFunction.PatchNameTraining(id, name, factory);
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IPatchFunction.PatchNameTraining(id, name, id_user, factory);
             if (!result)
                 return Ok("No change data (equal or not in DB)");
 
@@ -362,10 +378,12 @@ namespace Trey2.Controllers
         /// <response code="200">Данные не изменены (Введена аналогичная оценка либо нет тренировки)</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPatch]
+        [Authorize]
         [Route("Patch/StressScore/{id}")]
         async public Task<IActionResult> PatchStressScoreTraining(ulong id, [Range(1,10)] byte score, IDatabaseFactory factory)
         {
-            var result = await IPatchFunction.PatchStressScoreTraining(id, score, factory);
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IPatchFunction.PatchStressScoreTraining(id, score, id_user, factory);
             if (!result)
                 return Ok("No change data (equal or not in DB)");
 
@@ -383,10 +401,12 @@ namespace Trey2.Controllers
         /// <response code="200">Данные не изменены (Введена аналогичная оценка либо нет тренировки)</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPatch]
+        [Authorize]
         [Route("Patch/FeelingScore/{id}")]
         async public Task<IActionResult> PatchFeelingScoreTraining(ulong id, [Range(1, 5)] byte score, IDatabaseFactory factory)
         {
-            var result = await IPatchFunction.PatchFeelingScoreTraining(id, score, factory);
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IPatchFunction.PatchFeelingScoreTraining(id, score, id_user, factory);
             if (!result)
                 return Ok("No change data (equal or not in DB)");
 
@@ -405,14 +425,16 @@ namespace Trey2.Controllers
         /// <response code="200">Данные не изменены (Введён аналогичный комментарий либо нет тренировки)</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPatch]
+        [Authorize]
         [Route("Patch/CommentSportsman/{id}")]
         async public Task<IActionResult> PatchCommentSportsman(ulong id, [MaxLength(1000)] string? comment, IDatabaseFactory factory)
         {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (comment is null)
             {
                 return BadRequest("comment is null");
             }
-            var result = await IPatchFunction.PatchCommentSportsmanTraining(id, comment, factory);
+            var result = await IPatchFunction.PatchCommentSportsmanTraining(id, comment, id_user, factory);
             if (!result)
                 return Ok("No change data (equal or not in DB)");
 
@@ -432,14 +454,16 @@ namespace Trey2.Controllers
         /// <response code="200">Данные не изменены (Введено аналогичное описание либо нет тренировки/круга)</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpPatch]
+        [Authorize]
         [Route("Patch/LapCaption/{id}")]
         async public Task<IActionResult> PatchLapCaption(ulong id, int lap_id, string? caption, IDatabaseFactory factory)
         {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (caption is null)
             {
                 return BadRequest("caption is null");
             }
-            var result = await IPatchFunction.PatchLapCaption(lap_id, id, caption, factory);
+            var result = await IPatchFunction.PatchLapCaption(lap_id, id, caption, id_user, factory);
             if (!result)
                 return Ok("No change data (equal or not in DB)");
 

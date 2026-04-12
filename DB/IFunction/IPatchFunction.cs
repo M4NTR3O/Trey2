@@ -118,17 +118,18 @@ namespace Trey2.DB.IFunction
         }
 
         //Patch Training Name
-        public static async Task<bool> PatchNameTraining(ulong id, string name_training, IDatabaseFactory factory)
+        public static async Task<bool> PatchNameTraining(ulong id, string name_training, ulong user_id, IDatabaseFactory factory)
         {
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;
-                string update_query = @"UPDATE training SET name_training = @name WHERE training_id = @id;";
+                string update_query = @"UPDATE training SET name_training = @name WHERE training_id = @id AND sportsman_id = @user_id;";
                 using (var update_command = new MySqlCommand(update_query, connection))
                 {
                     update_command.Parameters.Add("@id", MySqlDbType.UInt64).Value = id;
                     update_command.Parameters.Add("@name", MySqlDbType.String).Value = name_training;
+                    update_command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = user_id;
                     result = await update_command.ExecuteNonQueryAsync() > 0;
                 }
                 await connection.CloseAsync();
@@ -137,17 +138,18 @@ namespace Trey2.DB.IFunction
         }
 
         //Patch Training Stress Score
-        public static async Task<bool> PatchStressScoreTraining(ulong id, byte stress_score, IDatabaseFactory factory)
+        public static async Task<bool> PatchStressScoreTraining(ulong id, byte stress_score, ulong user_id, IDatabaseFactory factory)
         {
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;
-                string update_query = @"UPDATE training SET stress_score = @score WHERE training_id = @id;";
+                string update_query = @"UPDATE training SET stress_score = @score WHERE training_id = @id AND sportsman_id = @user_id;";
                 using (var update_command = new MySqlCommand(update_query, connection))
                 {
                     update_command.Parameters.Add("@id", MySqlDbType.UInt64).Value = id;
                     update_command.Parameters.Add("@score", MySqlDbType.UByte).Value = stress_score;
+                    update_command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = user_id;
                     result = await update_command.ExecuteNonQueryAsync() > 0;
                 }
                 await connection.CloseAsync();
@@ -156,17 +158,18 @@ namespace Trey2.DB.IFunction
         }
 
         //Patch Training Feeling Score
-        public static async Task<bool> PatchFeelingScoreTraining(ulong id, byte feeling_score, IDatabaseFactory factory)
+        public static async Task<bool> PatchFeelingScoreTraining(ulong id, byte feeling_score, ulong user_id, IDatabaseFactory factory)
         {
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;
-                string update_query = @"UPDATE training SET feeling_score = @score WHERE training_id = @id;";
+                string update_query = @"UPDATE training SET feeling_score = @score WHERE training_id = @id AND sportsman_id = @user_id;";
                 using (var update_command = new MySqlCommand(update_query, connection))
                 {
                     update_command.Parameters.Add("@id", MySqlDbType.UInt64).Value = id;
                     update_command.Parameters.Add("@score", MySqlDbType.UByte).Value = feeling_score;
+                    update_command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = user_id;
                     result = await update_command.ExecuteNonQueryAsync() > 0;
                 }
                 await connection.CloseAsync();
@@ -175,17 +178,18 @@ namespace Trey2.DB.IFunction
         }
 
         //Patch Sportsmen comment
-        public static async Task<bool> PatchCommentSportsmanTraining(ulong id, string comment_sportsman, IDatabaseFactory factory)
+        public static async Task<bool> PatchCommentSportsmanTraining(ulong id, string comment_sportsman, ulong user_id, IDatabaseFactory factory)
         {
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
                 bool result;
-                string update_query = @"UPDATE training SET comment_sportsman = @comment WHERE training_id = @id;";
+                string update_query = @"UPDATE training SET comment_sportsman = @comment WHERE training_id = @id AND sportsman_id = @user_id;";
                 using (var update_command = new MySqlCommand(update_query, connection))
                 {
                     update_command.Parameters.Add("@id", MySqlDbType.UInt64).Value = id;
                     update_command.Parameters.Add("@comment", MySqlDbType.String).Value = comment_sportsman;
+                    update_command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = user_id;
                     result = await update_command.ExecuteNonQueryAsync() > 0;
                 }
                 await connection.CloseAsync();

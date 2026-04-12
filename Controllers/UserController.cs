@@ -1,10 +1,15 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Trey2.DB;
 using Trey2.DB.IFunction;
 using Trey2.Models;
+using Trey2.Services;
 
 namespace Trey2.Controllers
 {
@@ -15,6 +20,11 @@ namespace Trey2.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
+        private readonly JwtService _jwtService;
+        public UserController(JwtService jwtService)
+        {
+            _jwtService = jwtService;
+        }
         /// <summary>
         /// Create new user
         /// </summary>
@@ -81,15 +91,17 @@ namespace Trey2.Controllers
         /// <response code="200">Возвращает данные пользователя</response>
         /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpGet]
-        [Route("Get/{id}")]
-        async public Task<ActionResult> Select(ulong id, IDatabaseFactory factory)
+        [Route("Get")]
+        async public Task<ActionResult> Select(IDatabaseFactory factory)
         {
-            if (id < 1)
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (id_user < 1)
             {
                 return BadRequest("ID является не натуральным числом");
             }
-            var user = await IReadFunction.GetUser(id, factory);
+            var user = await IReadFunction.GetUser(id_user, factory);
             if (user == null)
             {
                 return BadRequest("Подан ошибочный id");
@@ -130,8 +142,31 @@ namespace Trey2.Controllers
                 {
                     var result = await IReadFunction.GetAuth(request, factory);
                     if (!result.flag)
-                        return BadRequest("Invalid credentials");
+                    {
+                        return Unauthorized("Invalid credentials");
+                    }
 
+                    var access = _jwtService.GenerateAccessToken(result.user.id, result.user.user_nickname);
+
+                    var cookieOptions = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = false, // true в HTTPS
+                        SameSite = SameSiteMode.Lax,
+                        Expires = DateTime.UtcNow.AddMinutes(15)
+                    };
+
+                    Response.Cookies.Append("access_token", access, cookieOptions);
+
+                    var refresh = _jwtService.GenerateRefreshToken();
+                    Response.Cookies.Append("refresh_token", refresh, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = false,
+                        SameSite = SameSiteMode.Lax,
+                        Expires = DateTime.UtcNow.AddDays(7)
+                    });
+                    await ICreateFunction.SaveRefreshToken(result.user.id, refresh, factory);
                     return Ok(result.user);
                 }
                 catch (Exception ex)
@@ -153,15 +188,17 @@ namespace Trey2.Controllers
         /// <response code="200">Возвращает данные зон пользователя</response>
         /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpGet]
         [Route("UserZones/{id}")]
-        async public Task<ActionResult> GetAllUserZones(ulong id, IDatabaseFactory factory)
+        async public Task<ActionResult> GetAllUserZones(IDatabaseFactory factory)
         {
-            if (id < 1)
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (id_user < 1)
             {
                 return BadRequest("ID является не натуральным числом");
             }
-            var user_zones = await IReadFunction.GetAllUserZones(id, factory);
+            var user_zones = await IReadFunction.GetAllUserZones(id_user, factory);
             if (user_zones == null)
             {
                 return BadRequest("Подан ошибочный id");
@@ -179,15 +216,17 @@ namespace Trey2.Controllers
         /// <response code="200">Успешно удалены данные</response>
         /// <response code="400">ID является не натуральным числом</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpDelete]
-        [Route("Delete/{id}")]
-        async public Task<ActionResult> DeleteUser(ulong id, IDatabaseFactory factory)
+        [Route("Delete")]
+        async public Task<ActionResult> DeleteUser(IDatabaseFactory factory)
         {
-            if (id < 1)
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (id_user < 1)
             {
                 return BadRequest("ID является не натуральным числом");
             }
-            var result = await IDeleteFunction.DeleteUser(id, factory);
+            var result = await IDeleteFunction.DeleteUser(id_user, factory);
             if (!result)
                 return BadRequest("No Delete data");
             return Ok();
@@ -202,6 +241,7 @@ namespace Trey2.Controllers
         /// <response code="200"></response>
         /// <response code="400">Ошибка валидации данных; другие</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpPut]
         [Route("Update")]
         async public Task<IActionResult> UpdateUser(User user, IDatabaseFactory factory)
@@ -238,11 +278,13 @@ namespace Trey2.Controllers
         /// <response code="200"></response>
         /// <response code="400">Invalid credentials (Неправильно введены данные)</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpPatch]
-        [Route("ChangePassword/{id}")]
-        public async Task<IActionResult> PatchPassword(ulong id, string last_password, string new_password, IDatabaseFactory factory)
+        [Route("ChangePassword")]
+        public async Task<IActionResult> PatchPassword(string last_password, string new_password, IDatabaseFactory factory)
         {
-            var result = await IPatchFunction.PatchPassword(id, last_password, new_password, factory);
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IPatchFunction.PatchPassword(id_user, last_password, new_password, factory);
             if (!result)
                 return BadRequest("Invalid credentials");
 
@@ -253,18 +295,19 @@ namespace Trey2.Controllers
         /// Change user nickname (if it is unique)\
         /// Изменяет никнейм пользователя (если он уникален)
         /// </summary>
-        /// <param name="id">ID User</param>
         /// <param name="new_nickname">New user Nickname MaxLength=50</param>
         /// <returns>При успешном изменении ничего не возвращает</returns>
         /// <response code="200"></response>
         /// <response code="200">Данные не изменены (Введён аналогичный никнейм либо нет пользователя)</response>
         /// <response code="409">Данный никнейм уже привязана к другому аккаунту</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpPatch]
-        [Route("ChangeNickname/{id}")]
-        public async Task<IActionResult> PatchNickname(ulong id, [MaxLength(50)] string new_nickname, IDatabaseFactory factory)
+        [Route("ChangeNickname")]
+        public async Task<IActionResult> PatchNickname([MaxLength(50)] string new_nickname, IDatabaseFactory factory)
         {
-            var result = await IPatchFunction.PatchUserNickname(id, new_nickname, factory);
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IPatchFunction.PatchUserNickname(id_user, new_nickname, factory);
             if (result == -1)
                 return Conflict("Invalid Nickname already exists");
             else if (result == 0)
@@ -278,18 +321,19 @@ namespace Trey2.Controllers
         /// Change user email (if it is unique)\
         /// Изменяет почту пользователя (если она уникальна)
         /// </summary>
-        /// <param name="id">ID User</param>
         /// <param name="new_email">New user Email MaxLength=50</param>
         /// <returns>При успешном изменении ничего не возвращает</returns>
         /// <response code="200"></response>
         /// <response code="200">Данные не изменены (Введён аналогичный email либо нет пользователя)</response>
         /// <response code="409">Данная почта уже привязана к другому аккаунту</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpPatch]
-        [Route("ChangeEmail/{id}")]
-        public async Task<IActionResult> PatchEmail(ulong id, [MaxLength(50)] string new_email, IDatabaseFactory factory)
+        [Route("ChangeEmail")]
+        public async Task<IActionResult> PatchEmail([MaxLength(50)] string new_email, IDatabaseFactory factory)
         {
-            var result = await IPatchFunction.PatchUserEmail(id, new_email, factory);
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IPatchFunction.PatchUserEmail(id_user, new_email, factory);
             if (result == -1)
                 return Conflict("Invalid Email already exists");
             else if (result == 0)
@@ -297,5 +341,49 @@ namespace Trey2.Controllers
 
             return Ok();
         }
+
+        [Authorize]
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IActionResult> Logout(string refreshToken, IDatabaseFactory factory)
+        {
+            await IDeleteFunction.deleteRefresh(refreshToken, factory);
+            Response.Cookies.Delete("access_token");
+            Response.Cookies.Delete("refresh_token");
+            return Ok();
+        }
+
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh(IDatabaseFactory factory)
+        {
+            var refreshToken = Request.Cookies["refresh_token"];
+
+            if (refreshToken == null)
+                return Unauthorized();
+
+            var userId = await IReadFunction.ValidateRefresh(refreshToken, factory);
+
+            if (userId == null)
+                return null;
+
+            // старый refresh удаляем
+            await IDeleteFunction.deleteRefresh(refreshToken, factory);
+
+            var newAccess = _jwtService.GenerateAccessToken(userId.Value, "user");
+            var newRefresh = _jwtService.GenerateRefreshToken();
+
+            await ICreateFunction.SaveRefreshToken(userId.Value, newRefresh, factory);
+
+            var result = new {
+                AccessToken = newAccess,
+                RefreshToken = newRefresh
+            };
+
+            if (result == null)
+                return Unauthorized();
+
+            return Ok(result);
+        } 
     }
 }

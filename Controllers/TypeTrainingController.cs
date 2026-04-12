@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Trey2.DB.IFunction;
 using Trey2.DB;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Trey2.Controllers
 {
@@ -16,6 +17,7 @@ namespace Trey2.Controllers
         /// <response code="200">Возвращает список типов тренировки</response>
         /// <response code="400">Данные в БД отсутствуют</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

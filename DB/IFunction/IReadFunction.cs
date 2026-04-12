@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Data;
 using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
+using System.Text;
 using Trey2.Models;
 using Trey2.ViewModel;
 using Trey2.ViewModels;
@@ -103,7 +105,7 @@ namespace Trey2.DB.IFunction
             }
         }
 
-        public static async Task<(ViewTrainingFull?, List<TrackpointGraph>)> GetFullTraining(ulong training_id, IDatabaseFactory factory)
+        public static async Task<(ViewTrainingFull?, List<TrackpointGraph>)> GetFullTraining(ulong training_id, ulong id_user, IDatabaseFactory factory)
         {
             
             using(var connection = factory.CreateConnection())
@@ -120,12 +122,13 @@ namespace Trey2.DB.IFunction
                     @" INNER JOIN status_training AS S ON S.status_id = T.status_training_id" +
                     @" INNER JOIN type_training AS TT ON TT.type_training_id = T.type_training_id" +
                     @" INNER JOIN sport AS SP ON SP.sport_id = T.sport_id" +
-                    @" WHERE `training_id` = @training_id;";
+                    @" WHERE `training_id` = @training_id AND `sportsman_id` = @user_id;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                    command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = id_user;
                     var reader = await command.ExecuteReaderAsync();
-                    while(await reader.ReadAsync())
+                    while (await reader.ReadAsync())
                     {
                         training = new ViewTrainingFull
                         {
@@ -164,9 +167,7 @@ namespace Trey2.DB.IFunction
                         };
                     }
                     await reader.CloseAsync();
-                }
-                
-                
+                }                
                 if (training is not null)
                 {
                     result = await GetFullTrackpoint(training_id, connection);
@@ -347,7 +348,7 @@ namespace Trey2.DB.IFunction
             return trackpoints;
         }*/
 
-        public static async Task<ViewTrainingMid?> GetMidTraining(ulong training_id, IDatabaseFactory factory)
+        public static async Task<ViewTrainingMid?> GetMidTraining(ulong training_id, ulong user_id, IDatabaseFactory factory)
         {
             
             using (var connection = factory.CreateConnection())
@@ -359,10 +360,11 @@ namespace Trey2.DB.IFunction
                     @" INNER JOIN status_training AS S ON S.status_id = T.status_training_id" +
                     @" INNER JOIN type_training AS TT ON TT.type_training_id = T.type_training_id" +
                     @" INNER JOIN sport AS SP ON SP.sport_id = T.sport_id" +
-                    @" WHERE `training_id` = @training_id;";
+                    @" WHERE `training_id` = @training_id AND `sportsman_id` = @user_id;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("training_id", MySqlDbType.UInt64).Value = training_id;
+                    command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = user_id;
                     var reader = await command.ExecuteReaderAsync();
 
                     while (await reader.ReadAsync())
@@ -506,7 +508,7 @@ namespace Trey2.DB.IFunction
             return laps;
         }
 
-        public static async Task<List<LowTraining>>GetPeriodTrainings(ulong sportsman_id, DateTime start, DateTime end, IDatabaseFactory factory)
+        public static async Task<CalendarViewer>GetPeriodTrainings(ulong sportsman_id, DateTime start, DateTime end, DateTime start_report, DateTime end_report, IDatabaseFactory factory)
         {
             
             end = end.AddDays(1);
@@ -540,9 +542,16 @@ namespace Trey2.DB.IFunction
                             trainings.Add(training);
                         }
                     }
+                    await reader.CloseAsync();
                 }
+                ReportCalendar report = await GetReportCalendar(sportsman_id, start_report, end_report, connection);
                 await connection.CloseAsync();
-                return trainings;
+                CalendarViewer viewer = new CalendarViewer
+                {
+                    trainings = trainings,
+                    report = report
+                };
+                return viewer;
             }
         }
 
@@ -635,5 +644,53 @@ namespace Trey2.DB.IFunction
             }
             return userZones;
         }
+
+        public static async Task<ReportCalendar> GetReportCalendar(ulong id_user, DateTime start, DateTime end, MySqlConnection? connection)
+        {
+            ReportCalendar report = new ReportCalendar();
+            end = end.AddDays(1);
+            string query = @"SELECT COUNT(*) AS trainings, SUM(duration) AS total_duration, SUM(training.distance) AS total_distance, SUM(calories) AS total_calories FROM training " +
+                @"WHERE sportsman_id = @sportsman_id AND time_start >= @start AND time_start < @end";
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.Add("@sportsman_id", MySqlDbType.UInt64).Value = id_user;
+                command.Parameters.Add("@start", MySqlDbType.DateTime).Value = start;
+                command.Parameters.Add("@end", MySqlDbType.DateTime).Value = end;
+                var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    report = new ReportCalendar
+                    {
+                        total_trainings =  reader.GetInt32("trainings"),
+                        total_calories = reader.GetInt32("total_calories"),
+                        total_distance = reader.GetDouble("total_distance"),
+                        total_duration = reader.GetDouble("total_duration")
+                    };
+                }
+            }
+            return report;
+        }
+
+        public static async Task<ulong?> ValidateRefresh(string refreshToken, IDatabaseFactory factory)
+        {
+            var hash = TokenHasher.Hash(refreshToken);
+            object? result;
+            using (var connection = factory.CreateConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"SELECT user_id FROM refresh_tokens WHERE token_hash = @hash AND expires_at > NOW()";
+                using(var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@hash", hash);
+
+                    result = await command.ExecuteScalarAsync();
+                }
+
+                
+                await connection.CloseAsync();
+            }
+            return result == null ? null : Convert.ToUInt64(result);
+        }
+
     }
 }

@@ -364,3 +364,9 @@ FodyWeavers.xsd
 
 #new user file
 */Params.json
+
+.env
+
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
