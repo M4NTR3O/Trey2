@@ -713,10 +713,10 @@ namespace Trey2.DB.IFunction
                 {
                     report = new ReportCalendar
                     {
-                        total_trainings =  reader.GetInt32("trainings"),
-                        total_calories = reader.GetInt32("total_calories"),
-                        total_distance = reader.GetDouble("total_distance"),
-                        total_duration = reader.GetDouble("total_duration")
+                        total_trainings = reader.IsDBNull("trainings") ? 0 : reader.GetInt32("trainings"),
+                        total_calories = reader.IsDBNull("total_calories") ? 0 : reader.GetInt32("total_calories"),
+                        total_distance = reader.IsDBNull("total_distance") ? 0 : reader.GetDouble("total_distance"),
+                        total_duration = reader.IsDBNull("total_duration") ? 0 : reader.GetDouble("total_duration")
                     };
                 }
                 await reader.CloseAsync();
