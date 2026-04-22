@@ -10,6 +10,7 @@ using Trey2.DB;
 using Trey2.DB.IFunction;
 using Trey2.Models;
 using Trey2.Services;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Trey2.Controllers
 {
@@ -342,6 +343,12 @@ namespace Trey2.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Exit account and delete JWT
+        /// </summary>
+        /// <param name="refreshToken"></param>
+        /// <param name="factory"></param>
+        /// <returns></returns>
         [Authorize]
         [HttpPost]
         [Route("logout")]
@@ -353,7 +360,23 @@ namespace Trey2.Controllers
             return Ok();
         }
 
-
+        /// <summary>
+        /// Update Access token (use when access token expires)
+        /// Code for axios:
+        /// axios.interceptors.response.use(
+        /// response => response,
+        ///async error => {
+        ///if (error.response.status === 401) {
+        /// // вызываем refresh
+        ///await axios.post('/api/refresh', { }, { withCredentials: true });
+        /// // повторяем исходный запрос
+        ///return axios(error.config);
+        /// }
+        /// return Promise.reject(error);
+        ///  }
+        ///);
+        /// </summary>
+        /// <returns></returns>
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh(IDatabaseFactory factory)
         {
@@ -365,7 +388,7 @@ namespace Trey2.Controllers
             var userId = await IReadFunction.ValidateRefresh(refreshToken, factory);
 
             if (userId == null)
-                return null;
+                return Unauthorized();
 
             // старый refresh удаляем
             await IDeleteFunction.deleteRefresh(refreshToken, factory);
@@ -383,7 +406,21 @@ namespace Trey2.Controllers
             if (result == null)
                 return Unauthorized();
 
-            return Ok(result);
+            Response.Cookies.Append("access_token", newAccess, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None, // важно для фронта на другом домене
+                Expires = DateTimeOffset.UtcNow.AddMinutes(15)
+            });
+            Response.Cookies.Append("refresh_token", newRefresh, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
+            });
+            return Ok();
         } 
     }
 }

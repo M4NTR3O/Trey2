@@ -6,14 +6,14 @@ namespace Trey2.DB.IFunction
     public interface IPatchFunction
     {
         //Patch Lap Caption
-        public static async Task<bool> PatchLapCaption(int id_lap, ulong id_training, string caption_lap, IDatabaseFactory factory)
+        public static async Task<bool> PatchLapCaption(int id_lap, ulong id_training, string caption_lap, ulong user_id, IDatabaseFactory factory)
         {
             bool result;
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
 
-                string update_query = @"UPDATE training_lap SET lap_caption = @caption WHERE training_lap_id = @id_lap AND training_id = @id_training;";
+                string update_query = @"UPDATE training_lap SET lap_caption = @caption WHERE training_lap_id = @id_lap AND training_id = @id_training AND sportsman_id = @user_id;";
                 using (var update_command = new MySqlCommand(update_query, connection))
                 {
                     update_command.Parameters.Add("@id_lap", MySqlDbType.UInt32).Value = id_lap;

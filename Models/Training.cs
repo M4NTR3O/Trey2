@@ -208,5 +208,7 @@ namespace Trey2.Models
         /// </summary>
         public List<Trackpoint>? trackpoints { get; set; }
 
+        public string? description { get; set; }
+
     }
 }

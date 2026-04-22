@@ -3,7 +3,7 @@
     public class GraphModel
     {
         public List<TrackpointFromPython>? trackpoint { get; set; }
-        public List<Pauses>? pauses { get; set; }
+        public List<Pause>? pauses { get; set; }
 
         public List<TrackpointViewFull>? GetTrackpoints()
         {

@@ -128,13 +128,13 @@ namespace Trey2.DB.IFunction
                             duration, distance, avg_heart_rate, max_heart_rate, min_heart_rate, avg_speed, max_speed,
                             avg_running_cadence, max_running_cadence, avg_power, max_power, start_position_lat,
                             start_position_long, total_ascent, total_descent, max_altitude, calories, is_gps, stress_score,
-                            feeling_score, comment_sportsman, coach_creator, comment_coach, status_training_id) 
+                            feeling_score, comment_sportsman, coach_creator, comment_coach, status_training_id, description) 
                             VALUES 
                             (@Sportsman, @Sport, @Type_training, @Name_training, @Time_start, @Local_timestamp,
                             @Duration, @Distance, @Avg_heart_rate, @Max_heart_rate, @Min_heart_rate, @Avg_speed, @Max_speed,
                             @Avg_running_cadence, @Max_running_cadence, @Avg_power, @Max_power, @Start_position_lat,
                             @Start_position_long, @Total_ascent, @Total_descent, @Max_altitude, @Calories, @Is_gps, @Stress_score,
-                            @Feeling_score, @Comment_sportsman, @Coach_creator, @Comment_coach, @Status_training);";
+                            @Feeling_score, @Comment_sportsman, @Coach_creator, @Comment_coach, @Status_training, @Description);";
                     using (var command = new MySqlCommand(query, connection, transaction))
                     {
                         command.Parameters.AddWithValue("@Sportsman", training.sportsman_id);
@@ -167,6 +167,7 @@ namespace Trey2.DB.IFunction
                         command.Parameters.AddWithValue("@Coach_creator", (object?)training.coach_creator ?? DBNull.Value);
                         command.Parameters.AddWithValue("@Comment_coach", (object?)training.comment_coach ?? DBNull.Value);
                         command.Parameters.AddWithValue("@Status_training", (object?)training.status_training ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@Description", (object?)training.description ?? DBNull.Value);
                         await command.ExecuteNonQueryAsync();
                         newId = (ulong)command.LastInsertedId;
                     }
@@ -213,13 +214,13 @@ namespace Trey2.DB.IFunction
                         duration, distance, avg_heart_rate, max_heart_rate, min_heart_rate, avg_speed, max_speed,
                         avg_running_cadence, max_running_cadence, avg_power, max_power, start_position_lat,
                         start_position_long, total_ascent, total_descent, max_altitude, calories, is_gps, stress_score,
-                        feeling_score, comment_sportsman, coach_creator, comment_coach, status_training_id) 
+                        feeling_score, comment_sportsman, coach_creator, comment_coach, status_training_id, description) 
                         VALUES 
                         (@Sportsman, @Sport, @Type_training, @Name_training, @Time_start, @Local_timestamp,
                         @Duration, @Distance, @Avg_heart_rate, @Max_heart_rate, @Min_heart_rate, @Avg_speed, @Max_speed,
                         @Avg_running_cadence, @Max_running_cadence, @Avg_power, @Max_power, @Start_position_lat,
                         @Start_position_long, @Total_ascent, @Total_descent, @Max_altitude, @Calories, @Is_gps, @Stress_score,
-                        @Feeling_score, @Comment_sportsman, @Coach_creator, @Comment_coach, @Status_training);";
+                        @Feeling_score, @Comment_sportsman, @Coach_creator, @Comment_coach, @Status_training, @Description);";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@Sportsman", training.sportsman_id);
@@ -252,6 +253,7 @@ namespace Trey2.DB.IFunction
                     command.Parameters.AddWithValue("@Coach_creator", (object?)training.coach_creator ?? DBNull.Value);
                     command.Parameters.AddWithValue("@Comment_coach", (object?)training.comment_coach ?? DBNull.Value);
                     command.Parameters.AddWithValue("@Status_training", (object?)training.status_training ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Description", (object?)training.description ?? DBNull.Value);
                     await command.ExecuteNonQueryAsync();
                     newId = (ulong)command.LastInsertedId;
                 }
@@ -281,6 +283,65 @@ namespace Trey2.DB.IFunction
                 await connection.CloseAsync();
             }
             
+        }
+
+        public static async Task<ulong> createPlannedTraining(TrainingCreate training, IDatabaseFactory factory)
+        {
+            ulong newId = 0;
+            using (var connection = factory.CreateConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"INSERT INTO training 
+                        (sportsman_id, sport_id, type_training_id, name_training, time_start, local_timestamp,
+                        duration, distance, avg_heart_rate, max_heart_rate, min_heart_rate, avg_speed, max_speed,
+                        avg_running_cadence, max_running_cadence, avg_power, max_power, start_position_lat,
+                        start_position_long, total_ascent, total_descent, max_altitude, calories, is_gps, stress_score,
+                        feeling_score, comment_sportsman, coach_creator, comment_coach, status_training_id, description) 
+                        VALUES 
+                        (@Sportsman, @Sport, @Type_training, @Name_training, @Time_start, @Local_timestamp,
+                        @Duration, @Distance, @Avg_heart_rate, @Max_heart_rate, @Min_heart_rate, @Avg_speed, @Max_speed,
+                        @Avg_running_cadence, @Max_running_cadence, @Avg_power, @Max_power, @Start_position_lat,
+                        @Start_position_long, @Total_ascent, @Total_descent, @Max_altitude, @Calories, @Is_gps, @Stress_score,
+                        @Feeling_score, @Comment_sportsman, @Coach_creator, @Comment_coach, @Status_training, @Description);";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Sportsman", training.sportsman_id);
+                    command.Parameters.AddWithValue("@Sport", training.sport_id);
+                    command.Parameters.AddWithValue("@Type_training", training.type_training_id);
+                    command.Parameters.AddWithValue("@Name_training", (object?)training.name_training ?? DBNull.Value);
+                    command.Parameters.Add("@Time_start", MySqlDbType.DateTime).Value = training.time_start;
+                    command.Parameters.Add("@Local_timestamp", MySqlDbType.DateTime).Value = training.local_timestamp;
+                    command.Parameters.AddWithValue("@Duration", training.duration);
+                    command.Parameters.AddWithValue("@Distance", (object?)training.distance ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Avg_heart_rate", (object?)training.avg_heart_rate ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Max_heart_rate", DBNull.Value);
+                    command.Parameters.AddWithValue("@Min_heart_rate", DBNull.Value);
+                    command.Parameters.AddWithValue("@Avg_speed", (object?)training.avg_speed ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Max_speed", DBNull.Value);
+                    command.Parameters.AddWithValue("@Avg_running_cadence", DBNull.Value);
+                    command.Parameters.AddWithValue("@Max_running_cadence", DBNull.Value);
+                    command.Parameters.AddWithValue("@Avg_power", DBNull.Value);
+                    command.Parameters.AddWithValue("@Max_power", DBNull.Value);
+                    command.Parameters.AddWithValue("@Start_position_lat", DBNull.Value);
+                    command.Parameters.AddWithValue("@Start_position_long", DBNull.Value);
+                    command.Parameters.AddWithValue("@Total_ascent", DBNull.Value);
+                    command.Parameters.AddWithValue("@Total_descent", DBNull.Value);
+                    command.Parameters.AddWithValue("@Max_altitude", DBNull.Value);
+                    command.Parameters.AddWithValue("@Calories", (object?)training.calories ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Is_gps", false);
+                    command.Parameters.AddWithValue("@Stress_score", (object?)training.stress_score ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Feeling_score", (object?)training.feeling_score ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Comment_sportsman", (object?)training.comment_sportsman ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Coach_creator", (object?)training.coach_creator ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Comment_coach", (object?)training.comment_coach ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Status_training", (object?)training.status_training ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Description", (object?)training.description ?? DBNull.Value);
+                    await command.ExecuteNonQueryAsync();
+                    newId = (ulong)command.LastInsertedId;
+                }
+                await connection.CloseAsync();
+            }
+            return newId;
         }
     }
 }

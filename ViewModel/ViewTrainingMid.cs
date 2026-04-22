@@ -118,5 +118,6 @@ namespace Trey2.ViewModel
         /// </summary>
         public List<TrackpointView>? trackpoints { get; set; }
         
+        public string? description { get; set; }
     }
 }

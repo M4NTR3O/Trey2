@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Trey2.ViewModel
 {
@@ -113,5 +114,31 @@ namespace Trey2.ViewModel
         /// </summary>
         public byte? status_training { get; set; }
 
+        public string? description { get; set; }
+
+        [SetsRequiredMembers]
+        public TrainingCreate(TrainingCreatePlan training)
+        {
+            try
+            {
+                sportsman_id = (ulong)training.sportsman_id;
+                sport_id = training.sport_id;
+                type_training_id = training.type_training_id;
+                name_training = training.name_training;
+                local_timestamp = training.local_timestamp.LocalDateTime;
+                time_start = training.local_timestamp.UtcDateTime;
+                duration = training.duration;
+                distance = training.distance;
+                avg_heart_rate = training.avg_heart_rate;
+                avg_speed = training.avg_speed;
+                coach_creator = training.coach_creator;
+                status_training = training.status_training;
+                description = training.description;
+            }
+            catch
+            {
+                throw new Exception("ID спортсмена не задан");
+            }
+        }
     }
 }

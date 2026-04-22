@@ -13,6 +13,7 @@ using Trey2.DB;
 using Trey2.DB.IFunction;
 using Trey2.Models;
 using Trey2.ViewModel;
+using Trey2.ViewModel.Report;
 using Trey2.ViewModels;
 
 namespace Trey2.Controllers
@@ -41,7 +42,7 @@ namespace Trey2.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UploadToPython([Required] IFormFile file, [FromForm] TrainingCreate training, IDatabaseFactory factory, IHttpClientFactory clientFactory)
         {
-
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             using var client = clientFactory.CreateClient("python");
 
             using var content = new MultipartFormDataContent();
@@ -101,7 +102,7 @@ namespace Trey2.Controllers
             {
                 return BadRequest("No valid data");
             }           
-            var (view_training, points) = await IReadFunction.GetFullTraining(id, factory);
+            var (view_training, points) = await IReadFunction.GetFullTraining(id, id_user, factory);
             TrainingGraphData data = new TrainingGraphData { TimeStartDt = view_training.time_start, trackpoints = points, is_gps = view_training.is_gps };
             var options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
             byte[] bytes = MessagePackSerializer.Serialize(data, options);
@@ -123,6 +124,11 @@ namespace Trey2.Controllers
             return Ok(view_training);
         }
 
+        /// <summary>
+        /// Create training without file
+        /// </summary>
+        /// <param name="training">training create model</param>
+        /// <returns></returns>
         [Authorize]
         [HttpPost]
         [Route("CreateTraining")]
@@ -131,9 +137,14 @@ namespace Trey2.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateWithoutFile(TrainingCreate training, IDatabaseFactory factory)
         {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             var validationContext = new ValidationContext(training);
             var validationResults = new List<ValidationResult>();
             var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+            if (training.local_timestamp.ToUniversalTime() > DateTime.UtcNow)
+            {
+                return BadRequest("Planning time not too late yet");
+            }
             Console.WriteLine($"Валидность данных - {isValid}");
             ulong id;
             if (isValid)
@@ -154,6 +165,117 @@ namespace Trey2.Controllers
             }
             //Функция переход с TrainigCreate в TrainingView
             var view_training = await IReadFunction.GetTrainingCreateWithoutFiles(id, factory);
+            return Ok(view_training);
+        }
+
+        /// <summary>
+        /// Create plan of training by sportsman
+        /// </summary>
+        /// <param name="training">training plan. params:
+        /// sportsman_id = null, local_timestamp (format: 2026-01-01T00:00:00+07:00), sport_id, type_training_id, name_training, description, duration, distance (may be null), avg_heart_rate (may be null), avg_speed (may be null), coach_creator = null, status_training_id = 2</param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPost]
+        [Route("CreatePlannedTrainingBySportsman")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreatePlannedTrainingSportsman(TrainingCreatePlan training, IDatabaseFactory factory)
+        {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            training.sportsman_id = id_user;
+            training.coach_creator = id_user;
+            TrainingCreate trainingCreate;
+            if (training.local_timestamp.UtcDateTime <= DateTime.UtcNow)
+            {
+                return BadRequest("Planning time already passed");
+            }
+            try
+            {
+                trainingCreate = new TrainingCreate(training);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            var validationContext = new ValidationContext(training);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+            Console.WriteLine($"Валидность данных - {isValid}");
+            ulong id;
+            if (isValid)
+            {
+                try
+                {
+                    //Загрузка на сервер итоговая
+                    id = await ICreateFunction.createPlannedTraining(trainingCreate, factory);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+            else
+            {
+                return BadRequest("No valid data");
+            }
+            //Функция переход с TrainigCreate в TrainingView
+            var view_training = await IReadFunction.GetTrainingCreatePlanned(id, factory);
+            return Ok(view_training);
+        }
+
+        /// <summary>
+        /// create plan of training by coach
+        /// </summary>
+        /// <param name="training">training plan. params:
+        /// sportsman_id, local_timestamp (format: 2026-01-01T00:00:00+07:00), sport_id, type_training_id, name_training, description, duration, distance (may be null), avg_heart_rate (may be null), avg_speed (may be null), coach_creator = null, status_training_id = 2</param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPost]
+        [Route("CreatePlannedTrainingByCoach")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreatePlannedTrainingCoach(TrainingCreatePlan training, IDatabaseFactory factory)
+        {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            training.coach_creator = id_user;
+            if (training.local_timestamp.UtcDateTime <= DateTime.UtcNow)
+            {
+                return BadRequest("Planning time already passed");
+            }
+            TrainingCreate trainingCreate;
+            try
+            {
+                trainingCreate = new TrainingCreate(training);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            var validationContext = new ValidationContext(training);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+            Console.WriteLine($"Валидность данных - {isValid}");
+            ulong id;
+            if (isValid)
+            {
+                try
+                {
+                    //Загрузка на сервер итоговая
+                    id = await ICreateFunction.createPlannedTraining(trainingCreate, factory);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+            else
+            {
+                return BadRequest("No valid data");
+            }
+            //Функция переход с TrainigCreate в TrainingView
+            var view_training = await IReadFunction.GetTrainingCreatePlanned(id, factory);
             return Ok(view_training);
         }
 
@@ -185,6 +307,10 @@ namespace Trey2.Controllers
             }
             else
             {
+                if (points == null || points.Count == 0)
+                {
+                    return Ok(training);
+                }
                 try
                 {
                     //Отправляем запрос на преобразование данных
@@ -345,6 +471,137 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
+        /// Update planned to completed training params\
+        /// (params for update: stress_score, feeling_score, comment_sportsman, file)
+        /// </summary>
+        /// <param name="training">Model training</param>
+        /// <returns></returns>
+        [HttpPut]
+        [Authorize]
+        [Route("UpdatePlanToCompleteFile")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdatePlanToCompleteWithFileTraining([Required] IFormFile file, [FromForm] UpdatePlanTraining training, IDatabaseFactory factory, IHttpClientFactory clientFactory)
+        {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            using var client = clientFactory.CreateClient("python");
+
+            using var content = new MultipartFormDataContent();
+            await using var fs = file.OpenReadStream();
+
+            content.Add(
+                new StreamContent(fs),
+                "file",
+                file.FileName
+            );
+            Console.WriteLine($"Отправка запроса на Python-Server {DateTime.UtcNow}");
+            var response = await client.PostAsync(
+                "/convert",
+                content
+            );
+            Console.WriteLine($"Получен ответ с Python-Server {DateTime.UtcNow}");
+            var json = await response.Content.ReadAsStringAsync();
+            var opts = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            opts.Converters.Add(new PlainDateTimeConverter());
+            var training_python = JsonSerializer.Deserialize<Training>(
+                json,
+                opts
+            );
+            Console.WriteLine($"Обработан JSON {DateTime.UtcNow}");
+            var validationContext = new ValidationContext(training);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+            Console.WriteLine($"Валидность данных - {isValid}");
+            ulong id;
+            if (isValid)
+            {
+                try
+                {
+                    training_python.id = training.id;
+                    training_python.comment_sportsman = training.comment_sportsman != null ? training.comment_sportsman : null;
+                    training_python.stress_score = training.stress_score;
+                    training_python.feeling_score = training.feeling_score;
+                    training_python.sportsman_id = id_user;
+                    Console.WriteLine("Загрузка в БД");
+                    //Загрузка на сервер итоговая
+                    await IUpdateFunction.UpdatePlanToCompleteTraining(training_python, id_user, factory);
+                    //Подготовить данные для отображения! Функция перевода данных в TrainingView (имеющихся) и вызов функции
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+            else
+            {
+                return BadRequest("No valid data");
+            }
+            var (view_training, points) = await IReadFunction.GetFullTraining(training.id, id_user, factory);
+            TrainingGraphData data = new TrainingGraphData { TimeStartDt = view_training.time_start, trackpoints = points, is_gps = view_training.is_gps };
+            var options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
+            byte[] bytes = MessagePackSerializer.Serialize(data, options);
+            var content_second = new ByteArrayContent(bytes);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
+            var response_second = await client.PostAsync(
+                "/data_to_graph",
+                content_second
+            );
+            //Обработка результатов
+            var result = await response_second.Content.ReadFromJsonAsync<GraphModel>();
+            view_training.powers = result.GetPowers();
+            view_training.heart_rates = result.GetHeart_rates();
+            view_training.trackpoints = result.GetTrackpoints();
+            view_training.paces = result.GetPaces();
+            view_training.cadences = result.GetCadences();
+            view_training.pauses = result.pauses;
+            view_training.altitudes = result.GetAltitudes();
+            return Ok(view_training);
+        }
+
+        /// <summary>
+        /// Update planned to completed training without file params\
+        /// (params for update: stress_score, feeling_score, comment_sportsman, time_start, local_timestamp, duration, distance, ang_hr, avg_speed, calories)
+        /// </summary>
+        /// <param name="training">Model training</param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPut]
+        [Route("UpdatePlanToCompleteWithoutFile")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdatePlanToCompleteWithoutFile(UpdatePlanTrainingWithoutFile training, IDatabaseFactory factory)
+        {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var validationContext = new ValidationContext(training);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+            Console.WriteLine($"Валидность данных - {isValid}");
+            if (isValid)
+            {
+                try
+                {
+                    //Загрузка на сервер итоговая
+                    await IUpdateFunction.UpdateTrainingWithoutFile(training, id_user, factory);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+            else
+            {
+                return BadRequest("No valid data");
+            }
+            var view_training = await IReadFunction.GetTrainingCreateWithoutFiles(training.id, factory);
+            return Ok(view_training);
+        }
+
+        /// <summary>
         /// Change training name\
         /// Изменяет наименование тренировки
         /// </summary>
@@ -469,5 +726,30 @@ namespace Trey2.Controllers
 
             return Ok();
         }
+
+
+        /// <summary>
+        /// Report data for graphics
+        /// </summary>
+        /// <param name="start">День начала отчёта</param>
+        /// <param name="end">День завершения отчёта (включая его)</param>
+        /// <param name="bin">bin infromation, sample bin: "day", "week", "month". Совет: Если меньше недели - день; если меньше месяца: предлагать на выбор: день, неделя; если больше месяца, но меньше полугода - любой, но день странно; больше полугода - неделя/месяц</param>
+        /// <param name="factory"></param>
+        /// <returns>Возвращает данные для отображения в графиках</returns>
+        /// <response code="200">object</response>
+        /// <response code="200">Not information OR Error in bin name</response>
+        [HttpGet]
+        [Authorize]
+        [Route("GetReport")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReportPage))]
+        async public Task<IActionResult> GetReport(DateTime start, DateTime end, string bin, IDatabaseFactory factory)
+        {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IReadFunction.GetReportPage(id_user, start, end, bin, factory);
+            if (result is null)
+                return Ok("Not information OR Error in bin name");
+            return Ok(result);
+        }
+
     }
 }

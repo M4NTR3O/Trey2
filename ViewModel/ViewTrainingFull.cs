@@ -204,6 +204,8 @@ namespace Trey2.ViewModel
         public List<Altitudes>? altitudes { get; set; }
         public List<Powers>? powers { get; set; }
         public List<Cadences>? cadences { get; set; }
-        public List<Pauses>? pauses { get; set; }
+        public List<Pause>? pauses { get; set; }
+
+        public string? description { get; set; }
     }
 }
