@@ -153,7 +153,7 @@ namespace Trey2.Controllers
                     {
                         HttpOnly = true,
                         Secure = false, // true в HTTPS
-                        SameSite = SameSiteMode.None,
+                        SameSite = SameSiteMode.Lax,
                         Expires = DateTime.UtcNow.AddMinutes(15)
                     };
 
@@ -164,7 +164,7 @@ namespace Trey2.Controllers
                     {
                         HttpOnly = true,
                         Secure = false,
-                        SameSite = SameSiteMode.None,
+                        SameSite = SameSiteMode.Lax,
                         Expires = DateTime.UtcNow.AddDays(7)
                     });
                     await ICreateFunction.SaveRefreshToken(result.user.id, refresh, factory);
@@ -410,14 +410,14 @@ namespace Trey2.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.None, // важно для фронта на другом домене
+                SameSite = SameSiteMode.Lax, // важно для фронта на другом домене
                 Expires = DateTimeOffset.UtcNow.AddMinutes(15)
             });
             Response.Cookies.Append("refresh_token", newRefresh, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.None,
+                SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddDays(7)
             });
             return Ok();
