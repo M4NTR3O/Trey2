@@ -21,7 +21,7 @@ namespace Trey2.Services
             {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Name, name)
-        };
+            };
 
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_config["JWT:KEY"]));

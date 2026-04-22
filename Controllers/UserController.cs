@@ -153,7 +153,7 @@ namespace Trey2.Controllers
                     {
                         HttpOnly = true,
                         Secure = false, // true в HTTPS
-                        SameSite = SameSiteMode.Lax,
+                        SameSite = SameSiteMode.None,
                         Expires = DateTime.UtcNow.AddMinutes(15)
                     };
 
@@ -164,7 +164,7 @@ namespace Trey2.Controllers
                     {
                         HttpOnly = true,
                         Secure = false,
-                        SameSite = SameSiteMode.Lax,
+                        SameSite = SameSiteMode.None,
                         Expires = DateTime.UtcNow.AddDays(7)
                     });
                     await ICreateFunction.SaveRefreshToken(result.user.id, refresh, factory);
