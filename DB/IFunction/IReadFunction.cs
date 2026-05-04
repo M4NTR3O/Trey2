@@ -773,10 +773,10 @@ namespace Trey2.DB.IFunction
                     {
                         overview = new ReportOverview
                         {
-                            total_trainings = reader.GetUInt32("session"),
-                            total_calories = reader.GetInt32("total_calories"),
+                            total_trainings = reader.IsDBNull("session") ? 0 : reader.GetUInt32("session"),
+                            total_calories = reader.IsDBNull("total_calories") ? 0 : reader.GetInt32("total_calories"),
                             total_distance = reader.IsDBNull("total_distance") ? null : reader.GetDouble("total_distance"),
-                            total_duration = reader.GetDouble("total_duration"),
+                            total_duration = reader.IsDBNull("total_duration") ? 0 : reader.GetDouble("total_duration"),
                             avg_pace = reader.IsDBNull("avg_pace") ? null : reader.GetDouble("avg_pace"),
                             total_ascent = reader.IsDBNull("total_ascent") ? null : reader.GetInt32("total_ascent"),
                             total_descent = reader.IsDBNull("total_descent") ? null : reader.GetInt32("total_descent"),
@@ -796,9 +796,9 @@ namespace Trey2.DB.IFunction
                         ReportBin bin_report = new ReportBin
                         {
                             bin_period = reader.GetValue("bin_period").ToString(),
-                            total_trainings = reader.GetUInt32("session"),
+                            total_trainings = reader.IsDBNull("session") ? 0 : reader.GetUInt32("session"),
                             total_distance = reader.IsDBNull("total_distance") ? null : reader.GetDouble("total_distance"),
-                            total_duration = reader.GetDouble("total_duration"),
+                            total_duration = reader.IsDBNull("total_duration") ? 0 : reader.GetDouble("total_duration"),
                             avg_pace = reader.IsDBNull("avg_pace") ? null : reader.GetDouble("avg_pace"),
                             total_ascent = reader.IsDBNull("total_ascent") ? null : reader.GetInt32("total_ascent"),
                             total_descent = reader.IsDBNull("total_descent") ? null : reader.GetInt32("total_descent"),
