@@ -116,6 +116,8 @@ namespace Trey2.ViewModel
 
         public string? description { get; set; }
 
+        public TrainingCreate() { }
+
         [SetsRequiredMembers]
         public TrainingCreate(TrainingCreatePlan training)
         {
@@ -132,6 +134,7 @@ namespace Trey2.ViewModel
                 avg_heart_rate = training.avg_heart_rate;
                 avg_speed = training.avg_speed;
                 coach_creator = training.coach_creator;
+                comment_coach = null;
                 status_training = training.status_training;
                 description = training.description;
             }
