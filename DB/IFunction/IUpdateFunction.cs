@@ -15,7 +15,7 @@ namespace Trey2.DB.IFunction
                 using (var command = new MySqlCommand(@"UPDATE `user` SET user_surname = @Surname, user_name = @Name,
                                                           user_fathername = @Fathername, user_height = @Height, user_gender = @Gender,
                                                           user_weight = @Weight, user_birthday = @Birthday, user_hr_rest = @HR_Rest, user_hr_max = @HR_Max, 
-                                                          user_pace_max = @Pace_Max, user_only_coach = @Only_Coach WHERE user_id = @Id;", connection))
+                                                          user_pace_max = @Pace_Max, user_only_coach = @Only_Coach, like_coach = @Like_Coach WHERE user_id = @Id;", connection))
                 {
                     command.Parameters.Add("@Surname", MySqlDbType.String).Value = user.user_surname;
                     command.Parameters.Add("@Name", MySqlDbType.String).Value = user.user_name;
@@ -29,6 +29,7 @@ namespace Trey2.DB.IFunction
                     command.Parameters.Add("@Pace_Max", MySqlDbType.Float).Value = user.user_pace_max;
                     command.Parameters.Add("@Only_Coach", MySqlDbType.Bool).Value = user.user_only_coach;
                     command.Parameters.Add("@Id", MySqlDbType.UInt64).Value = user.id;
+                    command.Parameters.Add("@Like_Coach", MySqlDbType.Bool).Value = user.like_coach;
 
                     await command.ExecuteNonQueryAsync();
                 }

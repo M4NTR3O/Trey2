@@ -15,9 +15,9 @@ namespace Trey2.DB.IFunction
             {
                 await connection.OpenAsync();
                 string query = @"INSERT INTO user 
-                            (user_surname, user_name, user_fathername, user_email, user_nickname, password, user_birthday, user_gender, user_height, user_weight, user_only_coach, user_hr_rest, user_hr_max, user_pace_max) 
+                            (user_surname, user_name, user_fathername, user_email, user_nickname, password, user_birthday, user_gender, user_height, user_weight, user_only_coach, user_hr_rest, user_hr_max, user_pace_max, like_coach) 
                             VALUES 
-                            (@Surname, @Name, @Fathername, @Email, @Nickname, @Password, @Birthday, @Gender, @Height, @Weight, @Only_Coach, @Hr_Rest, @Hr_Max, @Pace_Max);";
+                            (@Surname, @Name, @Fathername, @Email, @Nickname, @Password, @Birthday, @Gender, @Height, @Weight, @Only_Coach, @Hr_Rest, @Hr_Max, @Pace_Max, @LikeCoach);";
                 try
                 {
                     using (var command = new MySqlCommand(query, connection))
@@ -36,6 +36,7 @@ namespace Trey2.DB.IFunction
                         command.Parameters.AddWithValue("@Hr_Rest", _user.user_hr_rest);
                         command.Parameters.AddWithValue("@Hr_Max", _user.user_hr_max);
                         command.Parameters.AddWithValue("@Pace_Max", (object?)_user.user_pace_max ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@LikeCoach", _user.like_coach);
                         await command.ExecuteNonQueryAsync();
                         newId = command.LastInsertedId;
                     }

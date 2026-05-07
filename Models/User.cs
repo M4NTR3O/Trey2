@@ -96,5 +96,10 @@ namespace Trey2.Models
         /// </summary>
         public float? user_pace_max { get; set; }
 
+        /// <summary>
+        /// flag "like coach" - boolean (default = false)
+        /// </summary>
+        public bool like_coach { get; set; }
+
     }
 }

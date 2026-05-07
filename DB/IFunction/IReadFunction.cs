@@ -22,7 +22,7 @@ namespace Trey2.DB.IFunction
                 await connection.OpenAsync();
                 string query = @"SELECT `user_id`, `user_surname`, `user_name`, `user_fathername`, `user_email`," +
                     @" `user_nickname`, `user_birthday`, `user_gender`, `user_height`, `user_weight`, `user_only_coach`," +
-                    @" `user_hr_rest`, `user_hr_max`, `user_pace_max` FROM `user` WHERE `user_id`=@user_id;";
+                    @" `user_hr_rest`, `user_hr_max`, `user_pace_max`, `like_coach` FROM `user` WHERE `user_id`=@user_id;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = user_id;
@@ -45,7 +45,8 @@ namespace Trey2.DB.IFunction
                             user_only_coach = reader.GetBoolean("user_only_coach"),
                             user_hr_rest = reader.GetByte("user_hr_rest"),
                             user_hr_max = reader.GetByte("user_hr_max"),
-                            user_pace_max = reader.IsDBNull("user_pace_max") ? null : reader.GetFloat("user_pace_max")
+                            user_pace_max = reader.IsDBNull("user_pace_max") ? null : reader.GetFloat("user_pace_max"),
+                            like_coach = reader.GetBoolean("like_coach")
                         };
                     }
                     else
@@ -65,7 +66,7 @@ namespace Trey2.DB.IFunction
                 await connection.OpenAsync();
                 string query = @"SELECT `user_id`, `user_surname`, `user_name`, `user_fathername`, `user_email`," +
                     @" `user_nickname`, `user_birthday`, `user_gender`, `user_height`, `user_weight`, `user_only_coach`," +
-                    @" `user_hr_rest`, `user_hr_max`, `user_pace_max`, `password` FROM `user` WHERE user_email = @login OR user_nickname = @login;";
+                    @" `user_hr_rest`, `user_hr_max`, `user_pace_max`, `password`, `like_coach` FROM `user` WHERE user_email = @login OR user_nickname = @login;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@login", request.Login);
@@ -93,7 +94,8 @@ namespace Trey2.DB.IFunction
                             user_only_coach = reader.GetBoolean("user_only_coach"),
                             user_hr_rest = reader.GetByte("user_hr_rest"),
                             user_hr_max = reader.GetByte("user_hr_max"),
-                            user_pace_max = reader.IsDBNull("user_pace_max") ? null : reader.GetFloat("user_pace_max")
+                            user_pace_max = reader.IsDBNull("user_pace_max") ? null : reader.GetFloat("user_pace_max"),
+                            like_coach = reader.GetBoolean("like_coach")
                         };
                         await connection.CloseAsync();
                         return (true, user);
