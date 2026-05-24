@@ -5,6 +5,7 @@ using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Trey2.DTO.User;
 using Trey2.Models;
 using Trey2.ViewModel;
 using Trey2.ViewModel.Report;
@@ -726,25 +727,33 @@ namespace Trey2.DB.IFunction
             return report;
         }
 
-        public static async Task<ulong?> ValidateRefresh(string refreshToken, IDatabaseFactory factory)
+        public static async Task<UserCookie?> ValidateRefresh(string refreshToken, IDatabaseFactory factory)
         {
             var hash = TokenHasher.Hash(refreshToken);
-            object? result;
+            UserCookie result;
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT user_id FROM refresh_tokens WHERE token_hash = @hash AND expires_at > NOW()";
+                string query = @"SELECT RT.user_id AS id, U.nickname as nickname, role FROM refresh_tokens RT INNER JOIN user U ON U.user_id = RT.user_id WHERE token_hash = @hash AND expires_at > NOW()";
                 using(var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@hash", hash);
 
-                    result = await command.ExecuteScalarAsync();
+                    var reader = await command.ExecuteReaderAsync();
+                    await reader.ReadAsync();
+                    result = new UserCookie
+                    {
+                        id = reader.GetUInt64("id"),
+                        nickname = reader.GetString("nickname"),
+                        role = reader.GetString("role")
+                    };
+                    await reader.CloseAsync();
                 }
 
                 
                 await connection.CloseAsync();
             }
-            return result == null ? null : Convert.ToUInt64(result);
+            return result == null ? null : result;
         }
 
         public static async Task<ReportPage?> GetReportPage(ulong id_user, DateTime start, DateTime end, string bin, IDatabaseFactory factory)

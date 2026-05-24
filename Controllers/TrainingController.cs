@@ -225,61 +225,6 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// create plan of training by coach
-        /// </summary>
-        /// <param name="training">training plan. params:
-        /// sportsman_id, local_timestamp (format: 2026-01-01T00:00:00+07:00), sport_id, type_training_id, name_training, description, duration, distance (may be null), avg_heart_rate (may be null), avg_speed (may be null), coach_creator = null, status_training_id = 2</param>
-        /// <returns></returns>
-        [Authorize]
-        [HttpPost]
-        [Route("CreatePlannedTrainingByCoach")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreatePlannedTrainingCoach(TrainingCreatePlan training, IDatabaseFactory factory)
-        {
-            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            training.coach_creator = id_user;
-            if (training.local_timestamp.UtcDateTime <= DateTime.UtcNow)
-            {
-                return BadRequest("Planning time already passed");
-            }
-            TrainingCreate trainingCreate;
-            try
-            {
-                trainingCreate = new TrainingCreate(training);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            var validationContext = new ValidationContext(training);
-            var validationResults = new List<ValidationResult>();
-            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
-            Console.WriteLine($"Валидность данных - {isValid}");
-            ulong id;
-            if (isValid)
-            {
-                try
-                {
-                    //Загрузка на сервер итоговая
-                    id = await ICreateFunction.createPlannedTraining(trainingCreate, factory);
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(ex.Message);
-                }
-            }
-            else
-            {
-                return BadRequest("No valid data");
-            }
-            //Функция переход с TrainigCreate в TrainingView
-            var view_training = await IReadFunction.GetTrainingCreatePlanned(id, factory);
-            return Ok(view_training);
-        }
-
-        /// <summary>
         /// Get full data of training
         /// </summary>
         /// <param name="id">ID Training</param>

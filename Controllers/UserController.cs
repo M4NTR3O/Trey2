@@ -147,7 +147,8 @@ namespace Trey2.Controllers
                         return Unauthorized("Invalid credentials");
                     }
 
-                    var access = _jwtService.GenerateAccessToken(result.user.id, result.user.user_nickname);
+                    string role = result.user.user_only_coach? "Coach": "Sportsman";
+                    var access = _jwtService.GenerateAccessToken(result.user.id, result.user.user_nickname, role);
 
                     var cookieOptions = new CookieOptions
                     {
@@ -167,7 +168,7 @@ namespace Trey2.Controllers
                         SameSite = SameSiteMode.Lax,
                         Expires = DateTime.UtcNow.AddDays(7)
                     });
-                    await ICreateFunction.SaveRefreshToken(result.user.id, refresh, factory);
+                    await ICreateFunction.SaveRefreshToken(result.user.id, refresh, role, factory);
                     return Ok(result.user);
                 }
                 catch (Exception ex)
@@ -385,18 +386,18 @@ namespace Trey2.Controllers
             if (refreshToken == null)
                 return Unauthorized();
 
-            var userId = await IReadFunction.ValidateRefresh(refreshToken, factory);
+            var user = await IReadFunction.ValidateRefresh(refreshToken, factory);
 
-            if (userId == null)
+            if (user == null)
                 return Unauthorized();
 
             // старый refresh удаляем
             await IDeleteFunction.deleteRefresh(refreshToken, factory);
 
-            var newAccess = _jwtService.GenerateAccessToken(userId.Value, "user");
+            var newAccess = _jwtService.GenerateAccessToken(user.id, user.nickname, user.role);
             var newRefresh = _jwtService.GenerateRefreshToken();
 
-            await ICreateFunction.SaveRefreshToken(userId.Value, newRefresh, factory);
+            await ICreateFunction.SaveRefreshToken(user.id, newRefresh, user.role, factory);
 
             var result = new {
                 AccessToken = newAccess,

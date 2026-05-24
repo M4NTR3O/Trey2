@@ -15,12 +15,13 @@ namespace Trey2.Services
             _config = config;
         }
 
-        public string GenerateAccessToken(ulong userId, string name)
+        public string GenerateAccessToken(ulong userId, string name, string role)
         {
             var claims = new[]
             {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim(ClaimTypes.Name, name)
+            new Claim(ClaimTypes.Name, name),
+            new Claim(ClaimTypes.Role, role)
             };
 
             var key = new SymmetricSecurityKey(

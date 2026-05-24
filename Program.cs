@@ -13,6 +13,7 @@ using Trey2.Services;
 using MySqlConnector;
 using Trey2.DB.IFunction;
 using DotNetEnv;
+using Trey2.Services.Interfaces;
 
 namespace Trey2
 {
@@ -40,6 +41,8 @@ namespace Trey2
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IDatabaseFactory, DatabaseFactory>();
             builder.Services.AddScoped<JwtService>();
+            builder.Services.AddScoped<ICoachService, CoachService>();
+            builder.Services.AddScoped<ITrainingService, TrainingService>();
             builder.Services.AddHttpClient("python", client =>
             {
                 client.BaseAddress = new Uri(builder.Configuration["PythonApi:BaseUrl"]);
