@@ -215,7 +215,7 @@ namespace Trey2.Services
             using(var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT `id`, `sportsman_id`, `coach_id`, `status`, `created_at`. `responded_at` FROM `invitation` WHERE `coach_id` = @id_coach";
+                string query = @"SELECT `id`, `sportsman_id`, `coach_id`, `status`, `created_at`, `responded_at` FROM `invitation` WHERE `coach_id` = @id_coach";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("id_coach", MySqlDbType.UInt64).Value = id_user;
