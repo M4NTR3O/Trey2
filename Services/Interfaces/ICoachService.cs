@@ -1,4 +1,5 @@
 ﻿using Trey2.DTO.Coach;
+using Trey2.Models;
 using Trey2.ViewModel;
 using Trey2.ViewModel.Report;
 
@@ -15,5 +16,6 @@ namespace Trey2.Services.Interfaces
         Task RejectedInvite(ulong id_invite);
         Task CanceledInvite(ulong id_invite);
         Task<bool> RemoveRelation(ulong id_relation);
+        Task<List<Invitation>> GetInvites(ulong id_user);
     }
 }

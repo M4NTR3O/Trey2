@@ -662,5 +662,51 @@ namespace Trey2.Services
             }
             return newId;
         }
+        public async Task<CalendarViewer> GetPeriodPlannedTrainings(ulong sportsman_id, DateTime start, DateTime end, DateTime start_report, DateTime end_report)
+        {
+
+            end = end.AddDays(1);
+            using (var connection = _databaseFactory.CreateConnection())
+            {
+                List<LowTraining> trainings = new List<LowTraining>();
+                await connection.OpenAsync();
+                string query = @"SELECT training_id, name_training, sport_id, duration, distance, local_timestamp, S.status_caption as status_caption FROM training AS T " +
+                    @" INNER JOIN status_training AS S ON S.status_id = T.status_training_id " +
+                    @"WHERE sportsman_id = @sportsman_id AND time_start >= @start AND time_start < @end AND `status` = 2";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("@sportsman_id", MySqlDbType.UInt64).Value = sportsman_id;
+                    command.Parameters.Add("@start", MySqlDbType.DateTime).Value = start;
+                    command.Parameters.Add("@end", MySqlDbType.DateTime).Value = end;
+                    var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        LowTraining training = new LowTraining
+                        {
+                            id = reader.GetUInt64("training_id"),
+                            sport_id = reader.GetByte("sport_id"),
+                            name_training = reader.IsDBNull("name_training") ? null : reader.GetString("name_training"),
+                            duration = reader.GetFloat("duration"),
+                            distance = reader.IsDBNull("distance") ? null : reader.GetFloat("distance"),
+                            local_timestamp = reader.GetDateTime("local_timestamp"),
+                            status_training = reader.GetString("status_caption")
+                        };
+                        if (training is not null)
+                        {
+                            trainings.Add(training);
+                        }
+                    }
+                    await reader.CloseAsync();
+                }
+                ReportCalendar report = await GetReportCalendar(sportsman_id, start_report, end_report, connection);
+                await connection.CloseAsync();
+                CalendarViewer viewer = new CalendarViewer
+                {
+                    trainings = trainings,
+                    report = report
+                };
+                return viewer;
+            }
+        }
     }
 }

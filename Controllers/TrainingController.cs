@@ -12,6 +12,7 @@ using System.Xml.Linq;
 using Trey2.DB;
 using Trey2.DB.IFunction;
 using Trey2.Models;
+using Trey2.Services.Interfaces;
 using Trey2.ViewModel;
 using Trey2.ViewModel.Report;
 using Trey2.ViewModels;
@@ -23,6 +24,14 @@ namespace Trey2.Controllers
     [Route("api/[controller]")]
     public class TrainingController : ControllerBase
     {
+        private readonly ITrainingService _service;
+
+        public TrainingController(ITrainingService service)
+        {
+            _service = service;
+        }
+
+
 
         /// <summary>
         /// Upload training files on server and return data about it
@@ -696,5 +705,41 @@ namespace Trey2.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Get brief data of trainings from start day to end day including it
+        /// </summary>
+        /// <param name="sportsman_id">ID Sportsman</param>
+        /// <param name="start">The start date of the segment including id</param>
+        /// <param name="end">The end sate of the segment including id</param>
+        /// <param name="start_report">The start date for report of the segment including id</param>
+        /// <param name="end_report">The end date for report of the segment including id</param>
+        /// <param name="factory"></param>
+        /// <returns>Возвращает краткую информацию о тренировочных активностях с даты начала по дате конца, включая их</returns>
+        /// <response code="200">Возвращает краткие данные о тренировочных сессиях за период</response>
+        /// <response code="400">Неправильно задан диапазон времени; Нет данных</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpGet]
+        [Authorize]
+        [Route("GetLowPlanned")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CalendarViewer))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetLowPlannedTrainings(DateTime start, DateTime end, DateTime start_report, DateTime end_report, IDatabaseFactory factory)
+        {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (end < start)
+            {
+                return BadRequest("Неправильно задан диапазон времени");
+            }
+            var calendarViewer = await _service.GetPeriodPlannedTrainings(id_user, start, end, start_report, end_report);
+            if (calendarViewer.trainings == null)
+            {
+                return BadRequest("Нет данных");
+            }
+            else
+            {
+                return Ok(calendarViewer);
+            }
+        }
     }
 }

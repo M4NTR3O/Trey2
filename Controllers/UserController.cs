@@ -391,7 +391,6 @@ namespace Trey2.Controllers
             if (user == null)
                 return Unauthorized();
 
-            // старый refresh удаляем
             await IDeleteFunction.deleteRefresh(refreshToken, factory);
 
             var newAccess = _jwtService.GenerateAccessToken(user.id, user.nickname, user.role);
@@ -411,7 +410,7 @@ namespace Trey2.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Lax, // важно для фронта на другом домене
+                SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddMinutes(15)
             });
             Response.Cookies.Append("refresh_token", newRefresh, new CookieOptions
@@ -422,6 +421,17 @@ namespace Trey2.Controllers
                 Expires = DateTimeOffset.UtcNow.AddDays(7)
             });
             return Ok();
-        } 
+        }
+
+
+        [HttpGet]
+        [Authorize]
+        [Route("GetCoaches")]
+        public async Task<IActionResult> GetCoaches(IDatabaseFactory factory)
+        {
+            ulong user_id = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var result = await IReadFunction.GetCoachesForSportsman(user_id, factory);
+            return Ok(result);
+        }
     }
 }

@@ -5,6 +5,7 @@ using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Trey2.Controllers;
 using Trey2.DTO.User;
 using Trey2.Models;
 using Trey2.ViewModel;
@@ -934,6 +935,40 @@ namespace Trey2.DB.IFunction
                 query = null;
             }
             return query;
+        }
+
+        public static async Task<List<Coach>> GetCoachesForSportsman(ulong id_sportsman, IDatabaseFactory factory)
+        {
+            List<Coach> coaches = new List<Coach>();
+            using (var connection = factory.CreateConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"SELECT CS.`sportsman_coach_id` AS `relation_id`, U.`user_id` AS `coach_id`, CONCAT(`user_surname`, ` `, `user_name`, ` `, `user_fathername`) AS fullname," +
+                    @" `user_nickname` FROM `user` U INNER JOIN `sportsman_coach` CS ON U.`user_id`=CS.`coach_id` WHERE CS.`sportsman_id`=@sportsman_id;";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("sportsman_id", MySqlDbType.UInt64).Value = id_sportsman;
+                    var reader = await command.ExecuteReaderAsync();
+
+                    while (await reader.ReadAsync())
+                    {
+                        Coach coach = new Coach
+                        {
+                            id = reader.GetUInt64("coach_id"),
+                            fullname = reader.GetString("fullname"),
+                            nickname = reader.GetString("user_nickname"),
+                            relation_id = reader.GetUInt64("relation_id")
+                        };
+                        if (coach is not null)
+                        {
+                            coaches.Add(coach);
+                        }
+                    }
+                    await reader.CloseAsync();
+                }
+                await connection.CloseAsync();
+                return coaches;
+            }
         }
     }
 }

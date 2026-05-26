@@ -28,6 +28,10 @@ namespace Trey2.Controllers
             _trainingService = trainingService;
         }
 
+        /// <summary>
+        /// Get list all coaches
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Route("Get/Coaches")]
         [Authorize(Roles = "Sportsman")]
@@ -41,6 +45,10 @@ namespace Trey2.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Get list sportsman by coach
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Route("Get/Sportsmen")]
         [Authorize(Roles = "Coach")]
@@ -291,6 +299,11 @@ namespace Trey2.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Create invite coach by sportsman
+        /// </summary>
+        /// <param name="id_coach"></param>
+        /// <returns></returns>
         [HttpPost]
         [Authorize]
         [Route("CreateInvite")]
@@ -304,6 +317,25 @@ namespace Trey2.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Get invites for user 
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Authorize]
+        [Route("Invites")]
+        async public Task<IActionResult> GetInvites()
+        {
+            ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            await _service.GetInvites(id_user);
+            return Ok();
+        }
+
+        /// <summary>
+        /// Change status invite on accepted by coach
+        /// </summary>
+        /// <param name="id_invite"></param>
+        /// <returns></returns>
         [HttpPost]
         [Authorize]
         [Route("AcceptedInvite")]
@@ -313,6 +345,12 @@ namespace Trey2.Controllers
             await _service.AcceptedInvite(id_invite);
             return Ok();
         }
+
+        /// <summary>
+        /// Change status invite on rejected by coach
+        /// </summary>
+        /// <param name="id_invite"></param>
+        /// <returns></returns>
         [HttpPost]
         [Authorize]
         [Route("RejectedInvite")]
@@ -322,6 +360,12 @@ namespace Trey2.Controllers
             await _service.RejectedInvite(id_invite);
             return Ok();
         }
+
+        /// <summary>
+        /// Change status on cancelled by sportsman
+        /// </summary>
+        /// <param name="id_invite"></param>
+        /// <returns></returns>
         [HttpPost]
         [Authorize]
         [Route("CanceledInvite")]
@@ -332,6 +376,11 @@ namespace Trey2.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Remove Invite
+        /// </summary>
+        /// <param name="id_relation"></param>
+        /// <returns></returns>
         [HttpDelete]
         [Authorize]
         [Route("RemoveRelation")]

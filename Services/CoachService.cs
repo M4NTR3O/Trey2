@@ -4,6 +4,7 @@ using System.Data;
 using System.Threading.Tasks;
 using Trey2.DB;
 using Trey2.DTO.Coach;
+using Trey2.Models;
 using Trey2.Services.Interfaces;
 using Trey2.ViewModel;
 using Trey2.ViewModel.Report;
@@ -25,8 +26,8 @@ namespace Trey2.Services
             using(var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT `user_id` AS `id`, `user_email` AS `email`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`" +
-                    @" FROM user WHERE (`user_only_coach` = 1 OR `like_coach` = 1) AND `user_id` != @user_id";
+                string query = @"SELECT U.`user_id` AS `id`, `user_email` AS `email`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`" +
+                    @" FROM user U INNER JOIN `invitation` I ON U.`user_id` = I.`coach_id` WHERE (`user_only_coach` = 1 OR `like_coach` = 1) AND U.`user_id` != @user_id AND I.`status` != 1;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = id;
@@ -206,6 +207,40 @@ namespace Trey2.Services
                 }
             }
             return result is null ? false : true;
+        }
+
+        public async Task<List<Invitation>> GetInvites(ulong id_user)
+        {
+            List<Invitation> result = new List<Invitation>();
+            using(var connection = _databaseFactory.CreateConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"SELECT `id`, `sportsman_id`, `coach_id`, `status`, `created_at`. `responded_at` FROM `invitation` WHERE `coach_id` = @id_coach";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("id_coach", MySqlDbType.UInt64).Value = id_user;
+                    var reader = await command.ExecuteReaderAsync();
+                    while(await reader.ReadAsync())
+                    {
+                        Invitation invite = new Invitation
+                        {
+                            id = reader.GetUInt64("id"),
+                            sportsman_id = reader.GetUInt64("sportsman_id"),
+                            coach_id = reader.GetUInt64("coach_id"),
+                            status = reader.GetByte("status"),
+                            created_at = reader.GetDateTime("created_at"),
+                            responded_at = reader.GetDateTime("responded_at")
+                        };
+                        if (invite is not null)
+                        {
+                            result.Add(invite);
+                        }
+                    }
+                    await reader.CloseAsync();
+                }
+                await connection.CloseAsync();
+            }
+            return result;
         }
     }
 }
