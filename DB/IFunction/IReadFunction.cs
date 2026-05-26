@@ -943,7 +943,7 @@ namespace Trey2.DB.IFunction
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT CS.`sportsman_coach_id` AS `relation_id`, U.`user_id` AS `coach_id`, CONCAT(`user_surname`, ` `, `user_name`, ` `, `user_fathername`) AS fullname," +
+                string query = @"SELECT CS.`sportsman_coach_id` AS `relation_id`, U.`user_id` AS `coach_id`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS fullname," +
                     @" `user_nickname` FROM `user` U INNER JOIN `sportsman_coach` CS ON U.`user_id`=CS.`coach_id` WHERE CS.`sportsman_id`=@sportsman_id;";
                 using (var command = new MySqlCommand(query, connection))
                 {
