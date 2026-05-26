@@ -735,7 +735,7 @@ namespace Trey2.DB.IFunction
             using (var connection = factory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT RT.user_id AS id, U.nickname as nickname, role FROM refresh_tokens RT INNER JOIN user U ON U.user_id = RT.user_id WHERE token_hash = @hash AND expires_at > NOW()";
+                string query = @"SELECT RT.user_id AS id, U.user_nickname as nickname, role FROM refresh_tokens RT INNER JOIN user U ON U.user_id = RT.user_id WHERE token_hash = @hash AND expires_at > NOW()";
                 using(var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@hash", hash);

@@ -26,8 +26,8 @@ namespace Trey2.Services
             using(var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT U.`user_id` AS `id`, `user_email` AS `email`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`" +
-                    @" FROM user U INNER JOIN `invitation` I ON U.`user_id` = I.`coach_id` WHERE (`user_only_coach` = 1 OR `like_coach` = 1) AND U.`user_id` != @user_id AND I.`status` != 1;";
+                string query = @"SELECT `user_id` AS `id`, `user_email` AS `email`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`" +
+                    @" FROM user WHERE (`user_only_coach` = 1 OR `like_coach` = 1) AND `user_id` != @user_id;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = id;
@@ -99,7 +99,7 @@ namespace Trey2.Services
                 }
                 await connection.CloseAsync();
             }
-            return result is null ? false : true;
+            return (Convert.ToInt32(result) == 0) || (result is null) ? false : true;
         }
         public async Task<bool> CheckPendingInvite(ulong sportsman_id, ulong coach_id)
         {
@@ -117,7 +117,7 @@ namespace Trey2.Services
                 }
                 await connection.CloseAsync();
             }
-            return result is null ? false : true;
+            return (Convert.ToInt32(result) == 0) || (result is null) ? false : true;
         }
         public async Task CreateInvite(ulong id_sportsman, ulong id_coach)
         {
@@ -206,7 +206,7 @@ namespace Trey2.Services
                     result = await command.ExecuteScalarAsync();
                 }
             }
-            return result is null ? false : true;
+            return (Convert.ToInt32(result) == 0) || (result is null) ? false : true;
         }
 
         public async Task<List<Invitation>> GetInvites(ulong id_user)
