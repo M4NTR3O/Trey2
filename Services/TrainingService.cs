@@ -672,7 +672,7 @@ namespace Trey2.Services
                 await connection.OpenAsync();
                 string query = @"SELECT training_id, name_training, sport_id, duration, distance, local_timestamp, S.status_caption as status_caption FROM training AS T " +
                     @" INNER JOIN status_training AS S ON S.status_id = T.status_training_id " +
-                    @"WHERE sportsman_id = @sportsman_id AND time_start >= @start AND time_start < @end AND `status` = 2";
+                    @"WHERE sportsman_id = @sportsman_id AND time_start >= @start AND time_start < @end AND T.status_training_id = 2";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("@sportsman_id", MySqlDbType.UInt64).Value = sportsman_id;
