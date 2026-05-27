@@ -29,7 +29,7 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Get list all coaches
+        /// Get list all coaches by sportsman (Roles = "Sportsman")
         /// </summary>
         /// <returns></returns>
         [HttpGet]
@@ -53,7 +53,7 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Get list sportsman by coach
+        /// Get list sportsman by coach (Roles = "Coach")
         /// </summary>
         /// <returns></returns>
         [HttpGet]
@@ -77,7 +77,7 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// create plan of training by coach
+        /// create plan of training by coach (Roles = "Coach")
         /// </summary>
         /// <param name="training">training</param>
         /// <param name="id_sportsman">ID подопечного</param>
@@ -145,7 +145,7 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Get full data of training
+        /// Get full data of training by coach (Roles = "Coach")
         /// </summary>
         /// <param name="id_training">ID Training</param>
         /// <param name="id_sportsman">ID подопечного</param>
@@ -154,7 +154,7 @@ namespace Trey2.Controllers
         /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Coach")]
         [Route("Sportsman/Training/Get/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingFull))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -213,20 +213,19 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Get brief data of trainings from start day to end day including it
+        /// Get brief data of trainings from start day to end day including it by coach (Roles = "Coach")
         /// </summary>
-        /// <param name="sportsman_id">ID Sportsman</param>
+        /// <param name="id_sportsman">ID Sportsman</param>
         /// <param name="start">The start date of the segment including id</param>
         /// <param name="end">The end sate of the segment including id</param>
         /// <param name="start_report">The start date for report of the segment including id</param>
         /// <param name="end_report">The end date for report of the segment including id</param>
-        /// <param name="factory"></param>
         /// <returns>Возвращает краткую информацию о тренировочных активностях с даты начала по дате конца, включая их</returns>
         /// <response code="200">Возвращает краткие данные о тренировочных сессиях за период</response>
         /// <response code="400">Неправильно задан диапазон времени; Нет данных</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Coach")]
         [Route("Sportsman/Training/GetLow")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CalendarViewer))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -261,7 +260,7 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Get brief data of trainings with track (if it is not null)
+        /// Get brief data of trainings with track (if it is not null) by coach (Roles = "Coach")
         /// </summary>
         /// <param name="sportsman_id">ID подопечного</param>
         /// <param name="id_training">ID Training</param>
@@ -270,7 +269,7 @@ namespace Trey2.Controllers
         /// <response code="400">ID является не натуральным числом; Подан ошибочный id</response>
         /// <response code="500">Внутренняя ошибка сервера</response>
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Coach")]
         [Route("Sportsman/Training/GetMid/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ViewTrainingMid))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -307,7 +306,7 @@ namespace Trey2.Controllers
 
 
         /// <summary>
-        /// Report data for graphics
+        /// Report data for graphics by coach (Roles = "Coach")
         /// </summary>
         /// <param name="sportsman_id">ID полопечного</param>
         /// <param name="start">День начала отчёта</param>
@@ -318,7 +317,7 @@ namespace Trey2.Controllers
         /// <response code="200">object</response>
         /// <response code="200">Not information OR Error in bin name</response>
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Coach")]
         [Route("Sportsman/GetReport")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReportPage))]
         async public Task<IActionResult> GetReport(ulong sportsman_id, DateTime start, DateTime end, string bin)
@@ -388,12 +387,12 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Change status invite on accepted by coach
+        /// Change status invite on accepted by coach (Roles = "Coach")
         /// </summary>
         /// <param name="id_invite"></param>
         /// <returns></returns>
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Coach")]
         [Route("AcceptedInvite")]
         async public Task<IActionResult> AcceptedInvite(ulong id_invite)
         {
@@ -410,12 +409,12 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Change status invite on rejected by coach
+        /// Change status invite on rejected by coach (Roles = "Coach")
         /// </summary>
         /// <param name="id_invite"></param>
         /// <returns></returns>
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Coach")]
         [Route("RejectedInvite")]
         async public Task<IActionResult> RejectedInvite(ulong id_invite)
         {
@@ -432,12 +431,12 @@ namespace Trey2.Controllers
         }
 
         /// <summary>
-        /// Change status on cancelled by sportsman
+        /// Change status on cancelled by sportsman (Roles = "Sportsman")
         /// </summary>
         /// <param name="id_invite"></param>
         /// <returns></returns>
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Sportsman")]
         [Route("CanceledInvite")]
         async public Task<IActionResult> CanceledInvite(ulong id_invite)
         {
@@ -471,6 +470,23 @@ namespace Trey2.Controllers
                     return Ok("removed relation");
                 }
                 else return BadRequest("Don't find relation");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPatch]
+        [Authorize(Roles = "Coach")]
+        [Route("Training/PatchComment")]
+        async public Task<IActionResult> PatchCoachComment(ulong id_training, string comment)
+        {
+            try
+            {
+                ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                await _service.PatchCommentCoach(id_coach, id_training, comment);
+                return Ok();
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 ﻿using MySqlConnector;
+using Sprache;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
@@ -70,7 +71,8 @@ namespace Trey2.Services
                         SportsmanElement element = new SportsmanElement
                         {
                             id = reader.GetUInt64("id"),
-                            fullname = reader.GetString("fullname")
+                            fullname = reader.GetString("fullname"),
+                            nickname = reader.GetString("nickname")
                         };
                         if (element is not null)
                         {
@@ -241,6 +243,23 @@ namespace Trey2.Services
                 await connection.CloseAsync();
             }
             return result;
+        }
+
+        public async Task PatchCommentCoach(ulong id_coach, ulong id_training, string comment)
+        {
+            using (var connection = _databaseFactory.CreateConnection())
+            {
+                await connection.OpenAsync();
+                string query = @"UPDATE `training` SET `comment_coach` VALUES @comment WHERE `training_id`=@id_training AND `coach_creator` = @id_coach;";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("@id_training", MySqlDbType.UInt64).Value = id_training;
+                    command.Parameters.Add("@id_coach", MySqlDbType.UInt64).Value = id_coach;
+                    command.Parameters.Add("@comment", MySqlDbType.UInt64).Value = comment;
+                    var reader = await command.ExecuteNonQueryAsync();
+                }
+                await connection.CloseAsync();
+            }
         }
     }
 }

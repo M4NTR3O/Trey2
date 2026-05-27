@@ -17,5 +17,7 @@ namespace Trey2.Services.Interfaces
         Task CanceledInvite(ulong id_invite);
         Task<bool> RemoveRelation(ulong id_relation);
         Task<List<Invitation>> GetInvites(ulong id_user);
+
+        Task PatchCommentCoach(ulong id_coach, ulong id_training, string comment);
     }
 }
