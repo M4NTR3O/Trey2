@@ -60,7 +60,7 @@ namespace Trey2.Services
             {
                 await connection.OpenAsync();
                 string query = @"SELECT U.`user_id` AS `id`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`
-                                 FROM user U INNER JOIN `sportsman_coach` SC ON U.user_id = SC.sportsman_id WHERE SC.coach_id = @coach_id";
+                                 FROM user U INNER JOIN `sportsman_coach` SC ON U.user_id = SC.sportsman_id WHERE SC.coach_id = @coach_id;";
                 using(var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("coach_id", MySqlDbType.UInt64).Value = id;
@@ -124,7 +124,7 @@ namespace Trey2.Services
             using (var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"INSERT INTO invitation (sportsman_id, coach_id, `status`) VALUES (@sportsman, @coach, 0)";
+                string query = @"INSERT INTO invitation (sportsman_id, coach_id, `status`) VALUES (@sportsman, @coach, 0);";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("sportsman", MySqlDbType.UInt64).Value = id_sportsman;
@@ -215,7 +215,7 @@ namespace Trey2.Services
             using(var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT `id`, `sportsman_id`, `coach_id`, `status`, `created_at`, `responded_at` FROM `invitation` WHERE `coach_id` = @id_user OR `sportsman_id=@id_user";
+                string query = @"SELECT `id`, `sportsman_id`, `coach_id`, `status`, `created_at`, `responded_at` FROM `invitation` WHERE `coach_id` = @id_user OR `sportsman_id`=@id_user;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("@id_user", MySqlDbType.UInt64).Value = id_user;
