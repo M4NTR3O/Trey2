@@ -38,11 +38,18 @@ namespace Trey2.Controllers
         public async Task<IActionResult> getCoaches()
         {
             ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var result = await _service.getCoaches(id_user);
-            if (result is null)
-                return BadRequest("Invalid credentials");
+            try
+            {
+                var result = await _service.getCoaches(id_user);
+                if (result is null)
+                    return BadRequest("Invalid credentials");
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch( Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -55,11 +62,18 @@ namespace Trey2.Controllers
         public async Task<IActionResult> getSportsmen()
         {
             ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var result = await _service.getSportsmen(id_user);
-            if (result is null)
-                return BadRequest("Invalid credentials");
+            try
+            {
+                var result = await _service.getSportsmen(id_user);
+                if (result is null)
+                    return BadRequest("Invalid credentials");
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -78,49 +92,56 @@ namespace Trey2.Controllers
         public async Task<IActionResult> CreatePlannedTrainingCoach(ulong id_sportsman, TrainingCreatePlan training)
         {
             ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (!(await _service.CheckRelation(id_sportsman, id_coach)))
-            {
-                return Forbid("Отсутсвует доступ к данным");
-            }
-            training.coach_creator = id_coach;
-            training.sportsman_id = id_sportsman;
-            if (training.local_timestamp.UtcDateTime <= DateTime.UtcNow)
-            {
-                return BadRequest("Planning time already passed");
-            }
-            TrainingCreate trainingCreate;
             try
             {
-                trainingCreate = new TrainingCreate(training);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            var validationContext = new ValidationContext(training);
-            var validationResults = new List<ValidationResult>();
-            var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
-            Console.WriteLine($"Валидность данных - {isValid}");
-            ulong id;
-            if (isValid)
-            {
+                if (!(await _service.CheckRelation(id_sportsman, id_coach)))
+                {
+                    return Forbid("Отсутсвует доступ к данным");
+                }
+                training.coach_creator = id_coach;
+                training.sportsman_id = id_sportsman;
+                if (training.local_timestamp.UtcDateTime <= DateTime.UtcNow)
+                {
+                    return BadRequest("Planning time already passed");
+                }
+                TrainingCreate trainingCreate;
                 try
                 {
-                    //Загрузка на сервер итоговая
-                    id = await _trainingService.createPlannedTraining(trainingCreate);
+                    trainingCreate = new TrainingCreate(training);
                 }
                 catch (Exception ex)
                 {
                     return BadRequest(ex.Message);
                 }
+                var validationContext = new ValidationContext(training);
+                var validationResults = new List<ValidationResult>();
+                var isValid = Validator.TryValidateObject(training, validationContext, validationResults, true);
+                Console.WriteLine($"Валидность данных - {isValid}");
+                ulong id;
+                if (isValid)
+                {
+                    try
+                    {
+                        //Загрузка на сервер итоговая
+                        id = await _trainingService.createPlannedTraining(trainingCreate);
+                    }
+                    catch (Exception ex)
+                    {
+                        return BadRequest(ex.Message);
+                    }
+                }
+                else
+                {
+                    return BadRequest("No valid data");
+                }
+                //Функция переход с TrainigCreate в TrainingView
+                var view_training = await _trainingService.GetTrainingCreatePlanned(id);
+                return Ok(view_training);
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest("No valid data");
+                return BadRequest(ex.Message);
             }
-            //Функция переход с TrainigCreate в TrainingView
-            var view_training = await _trainingService.GetTrainingCreatePlanned(id);
-            return Ok(view_training);
         }
 
         /// <summary>
@@ -213,22 +234,29 @@ namespace Trey2.Controllers
         public async Task<IActionResult> GetLowTrainings(ulong id_sportsman, DateTime start, DateTime end, DateTime start_report, DateTime end_report)
         {
             ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (!(await _service.CheckRelation(id_sportsman, id_coach)))
+            try
             {
-                return Forbid("Отсутсвует доступ к данным");
+                if (!(await _service.CheckRelation(id_sportsman, id_coach)))
+                {
+                    return Forbid("Отсутсвует доступ к данным");
+                }
+                if (end < start)
+                {
+                    return BadRequest("Неправильно задан диапазон времени");
+                }
+                var calendarViewer = await _trainingService.GetPeriodTrainings(id_sportsman, start, end, start_report, end_report);
+                if (calendarViewer.trainings == null)
+                {
+                    return BadRequest("Нет данных");
+                }
+                else
+                {
+                    return Ok(calendarViewer);
+                }
             }
-            if (end < start)
+            catch (Exception ex)
             {
-                return BadRequest("Неправильно задан диапазон времени");
-            }
-            var calendarViewer = await _trainingService.GetPeriodTrainings(id_sportsman, start, end, start_report, end_report);
-            if (calendarViewer.trainings == null)
-            {
-                return BadRequest("Нет данных");
-            }
-            else
-            {
-                return Ok(calendarViewer);
+                return BadRequest(ex.Message);
             }
         }
 
@@ -250,22 +278,29 @@ namespace Trey2.Controllers
         public async Task<IActionResult> GetMidTraining(ulong id_training, ulong sportsman_id)
         {
             ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (!(await _service.CheckRelation(sportsman_id, id_coach)))
+            try
             {
-                return Forbid("Отсутсвует доступ к данным");
+                if (!(await _service.CheckRelation(sportsman_id, id_coach)))
+                {
+                    return Forbid("Отсутсвует доступ к данным");
+                }
+                if (id_training < 1)
+                {
+                    return BadRequest("ID является не натуральным числом");
+                }
+                var training = await _trainingService.GetMidTraining(id_training, sportsman_id);
+                if (training == null)
+                {
+                    return BadRequest("Подан ошибочный id");
+                }
+                else
+                {
+                    return Ok(training);
+                }
             }
-            if (id_training < 1)
+            catch(Exception ex)
             {
-                return BadRequest("ID является не натуральным числом");
-            }
-            var training = await _trainingService.GetMidTraining(id_training, sportsman_id);
-            if (training == null)
-            {
-                return BadRequest("Подан ошибочный id");
-            }
-            else
-            {
-                return Ok(training);
+                return BadRequest(ex.Message);
             }
         }
 
@@ -289,14 +324,21 @@ namespace Trey2.Controllers
         async public Task<IActionResult> GetReport(ulong sportsman_id, DateTime start, DateTime end, string bin)
         {
             ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (!(await _service.CheckRelation(sportsman_id, id_coach)))
+            try
             {
-                return Forbid("Отсутсвует доступ к данным");
+                if (!(await _service.CheckRelation(sportsman_id, id_coach)))
+                {
+                    return Forbid("Отсутсвует доступ к данным");
+                }
+                var result = await _trainingService.GetReportPage(sportsman_id, start, end, bin);
+                if (result is null)
+                    return Ok("Not information OR Error in bin name");
+                return Ok(result);
             }
-            var result = await _trainingService.GetReportPage(sportsman_id, start, end, bin);
-            if (result is null)
-                return Ok("Not information OR Error in bin name");
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -310,11 +352,18 @@ namespace Trey2.Controllers
         async public Task<IActionResult> CreateInvite(ulong id_coach)
         {
             ulong id_sportsman = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if ((!await _service.CheckRelation(id_sportsman, id_coach)) && (!await _service.CheckPendingInvite(id_sportsman, id_coach)))
+            try
             {
-                await _service.CreateInvite(id_sportsman, id_coach);
+                if ((!await _service.CheckRelation(id_sportsman, id_coach)) && (!await _service.CheckPendingInvite(id_sportsman, id_coach)))
+                {
+                    await _service.CreateInvite(id_sportsman, id_coach);
+                }
+                return Ok();
             }
-            return Ok();
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -327,8 +376,15 @@ namespace Trey2.Controllers
         async public Task<IActionResult> GetInvites()
         {
             ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            await _service.GetInvites(id_user);
-            return Ok();
+            try
+            {
+                await _service.GetInvites(id_user);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -342,8 +398,15 @@ namespace Trey2.Controllers
         async public Task<IActionResult> AcceptedInvite(ulong id_invite)
         {
             ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            await _service.AcceptedInvite(id_invite);
-            return Ok();
+            try
+            {
+                await _service.AcceptedInvite(id_invite);
+                return Ok();
+            }
+            catch(Exception ex)
+            {
+            return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -357,8 +420,15 @@ namespace Trey2.Controllers
         async public Task<IActionResult> RejectedInvite(ulong id_invite)
         {
             ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            await _service.RejectedInvite(id_invite);
-            return Ok();
+            try
+            {
+                await _service.RejectedInvite(id_invite);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -372,8 +442,15 @@ namespace Trey2.Controllers
         async public Task<IActionResult> CanceledInvite(ulong id_invite)
         {
             ulong id_coach = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            await _service.CanceledInvite(id_invite);
-            return Ok();
+            try
+            {
+                await _service.CanceledInvite(id_invite);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -386,12 +463,19 @@ namespace Trey2.Controllers
         [Route("RemoveRelation")]
         async public Task<IActionResult> RemoveRelation(ulong id_relation)
         {
-            var result = await _service.RemoveRelation(id_relation);
-            if (result)
+            try
             {
-                return Ok("removed relation");
+                var result = await _service.RemoveRelation(id_relation);
+                if (result)
+                {
+                    return Ok("removed relation");
+                }
+                else return BadRequest("Don't find relation");
             }
-            else return BadRequest("Don't find relation");
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

@@ -229,7 +229,7 @@ namespace Trey2.Services
                             coach_id = reader.GetUInt64("coach_id"),
                             status = reader.GetByte("status"),
                             created_at = reader.GetDateTime("created_at"),
-                            responded_at = reader.GetDateTime("responded_at")
+                            responded_at = reader.IsDBNull("responded_at") ? null : reader.GetDateTime("responded_at")
                         };
                         if (invite is not null)
                         {
