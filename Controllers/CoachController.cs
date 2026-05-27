@@ -378,8 +378,8 @@ namespace Trey2.Controllers
             ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             try
             {
-                await _service.GetInvites(id_user);
-                return Ok();
+                var result = await _service.GetInvites(id_user);
+                return Ok(result);
             }
             catch (Exception ex)
             {
