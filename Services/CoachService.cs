@@ -250,7 +250,7 @@ namespace Trey2.Services
             using (var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"UPDATE `training` SET `comment_coach` VALUES @comment WHERE `training_id`=@id_training AND `coach_creator` = @id_coach;";
+                string query = @"UPDATE `training` SET `comment_coach` = @comment WHERE `training_id`=@id_training AND `coach_creator` = @id_coach;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("@id_training", MySqlDbType.UInt64).Value = id_training;
