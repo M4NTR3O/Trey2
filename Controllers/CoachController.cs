@@ -464,7 +464,8 @@ namespace Trey2.Controllers
         {
             try
             {
-                var result = await _service.RemoveRelation(id_relation);
+                ulong id_user = ulong.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var result = await _service.RemoveRelation(id_relation, id_user);
                 if (result)
                 {
                     return Ok("removed relation");

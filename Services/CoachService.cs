@@ -60,7 +60,7 @@ namespace Trey2.Services
             using (var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT U.`user_id` AS `id`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`
+                string query = @"SELECT CS.`sportsman_coach_id` AS `relation_id`, U.`user_id` AS `id`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`
                                  FROM user U INNER JOIN `sportsman_coach` SC ON U.user_id = SC.sportsman_id WHERE SC.coach_id = @coach_id;";
                 using(var command = new MySqlCommand(query, connection))
                 {
@@ -72,7 +72,8 @@ namespace Trey2.Services
                         {
                             id = reader.GetUInt64("id"),
                             fullname = reader.GetString("fullname"),
-                            nickname = reader.GetString("nickname")
+                            nickname = reader.GetString("nickname"),
+                            id_relation = reader.GetUInt64("relation_id")
                         };
                         if (element is not null)
                         {
@@ -195,8 +196,12 @@ namespace Trey2.Services
                 await connection.CloseAsync();
             }
         }
-        public async Task<bool> RemoveRelation (ulong id_relation)
+        public async Task<bool> RemoveRelation (ulong id_relation, ulong id_user)
         {
+            if (!await CheckRelationByUser(id_relation, id_user))
+            {
+                throw new Exception("User don't have this relation");
+            }
             object? result;
             using(var connection = _databaseFactory.CreateConnection())
             {
@@ -205,6 +210,22 @@ namespace Trey2.Services
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("sportsman_coach_id", MySqlDbType.UInt64).Value = id_relation;
+                    result = await command.ExecuteScalarAsync();
+                }
+            }
+            return (Convert.ToInt32(result) == 0) || (result is null) ? false : true;
+        }
+        private async Task<bool> CheckRelationByUser(ulong id_relation, ulong id_user)
+        {
+            object? result;
+            using (var connection = _databaseFactory.CreateConnection())
+            {
+                await connection.OpenAsync();
+                string query = "SELECT COUNT (*) FROM sportsman_coach WHERE sportsman_coach_id = @sportsman_coach_id AND (sportsman_id = @user_id OR coach_id = @user_id);";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.Add("sportsman_coach_id", MySqlDbType.UInt64).Value = id_relation;
+                    command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = id_user;
                     result = await command.ExecuteScalarAsync();
                 }
             }
