@@ -217,7 +217,7 @@ namespace Trey2.Services
         }
         private async Task<bool> CheckRelationByUser(ulong id_relation, ulong id_user)
         {
-            object? result;
+            int result;
             using (var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
@@ -226,10 +226,10 @@ namespace Trey2.Services
                 {
                     command.Parameters.Add("sportsman_coach_id", MySqlDbType.UInt64).Value = id_relation;
                     command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = id_user;
-                    result = await command.ExecuteScalarAsync();
+                    result = await command.ExecuteNonQueryAsync();
                 }
             }
-            return (Convert.ToInt32(result) == 0) || (result is null) ? false : true;
+            return result > 0;
         }
 
         public async Task<List<Invitation>> GetInvites(ulong id_user)
