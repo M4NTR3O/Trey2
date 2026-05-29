@@ -240,8 +240,8 @@ namespace Trey2.Services
             using(var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT `id`, `sportsman_id`, sportsman.user_nickname as sportsman_nickname, CONCAT(`sportsman.user_surname`, ' ', `sportsman.user_name`, ' ', `sportsman.user_fathername`) AS `sportsman_fullname`, 
-                                                `coach_id`, coach.user_nickname as coach_nickname, CONCAT(`coach.user_surname`, ' ', `coach.user_name`, ' ', `coach.user_fathername`) AS `coach_fullname`, 
+                string query = @"SELECT `id`, `sportsman_id`, sportsman.user_nickname as sportsman_nickname, CONCAT(sportsman.user_surname, ' ', sportsman.user_name, ' ', sportsman.user_fathername) AS `sportsman_fullname`, 
+                                                `coach_id`, coach.user_nickname as coach_nickname, CONCAT(coach.user_surname, ' ', coach.user_name, ' ', coach.user_fathername) AS `coach_fullname`, 
                                                 `status`, `created_at`, `responded_at` FROM `invitation`
                                     INNER JOIN user sportsman ON sportsman.user_id = sportsman_id  
                                     INNER JOIN user coach ON coach.user_id = coach_id 
