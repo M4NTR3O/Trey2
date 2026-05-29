@@ -6,5 +6,6 @@ namespace Trey2.DTO.Coach
     {
         public string fullname { get; set; }
         public string nickname { get; set; }
+        public ulong id_relation { get; set; }
     }
 }
