@@ -221,7 +221,7 @@ namespace Trey2.Services
             using (var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = "SELECT COUNT (*) FROM sportsman_coach WHERE sportsman_coach_id = @sportsman_coach_id AND (sportsman_id = @user_id OR coach_id = @user_id);";
+                string query = "SELECT COUNT(*) FROM sportsman_coach WHERE sportsman_coach_id = @sportsman_coach_id AND (sportsman_id = @user_id OR coach_id = @user_id);";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("sportsman_coach_id", MySqlDbType.UInt64).Value = id_relation;
