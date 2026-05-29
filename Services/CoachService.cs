@@ -60,7 +60,7 @@ namespace Trey2.Services
             using (var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT CS.`sportsman_coach_id` AS `relation_id`, U.`user_id` AS `id`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`
+                string query = @"SELECT SC.`sportsman_coach_id` AS `relation_id`, U.`user_id` AS `id`, `user_nickname` AS `nickname`, CONCAT(`user_surname`, ' ', `user_name`, ' ', `user_fathername`) AS `fullname`
                                  FROM user U INNER JOIN `sportsman_coach` SC ON U.user_id = SC.sportsman_id WHERE SC.coach_id = @coach_id;";
                 using(var command = new MySqlCommand(query, connection))
                 {
