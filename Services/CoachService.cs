@@ -202,7 +202,7 @@ namespace Trey2.Services
             {
                 throw new Exception("User don't have this relation");
             }
-            object? result;
+            int result;
             using(var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
@@ -210,14 +210,15 @@ namespace Trey2.Services
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("sportsman_coach_id", MySqlDbType.UInt64).Value = id_relation;
-                    result = await command.ExecuteScalarAsync();
+                    result = await command.ExecuteNonQueryAsync();
                 }
+                await connection.CloseAsync();
             }
-            return (Convert.ToInt32(result) == 0) || (result is null) ? false : true;
+            return result > 0;
         }
         private async Task<bool> CheckRelationByUser(ulong id_relation, ulong id_user)
         {
-            int result;
+            object? result;
             using (var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
@@ -226,30 +227,40 @@ namespace Trey2.Services
                 {
                     command.Parameters.Add("sportsman_coach_id", MySqlDbType.UInt64).Value = id_relation;
                     command.Parameters.Add("user_id", MySqlDbType.UInt64).Value = id_user;
-                    result = await command.ExecuteNonQueryAsync();
+                    result = await command.ExecuteScalarAsync();
                 }
+                await connection.CloseAsync();
             }
-            return result > 0;
+            return (Convert.ToInt32(result) == 0) || (result is null) ? false : true;
         }
 
-        public async Task<List<Invitation>> GetInvites(ulong id_user)
+        public async Task<List<Invite>> GetInvites(ulong id_user)
         {
-            List<Invitation> result = new List<Invitation>();
+            List<Invite> result = new List<Invite>();
             using(var connection = _databaseFactory.CreateConnection())
             {
                 await connection.OpenAsync();
-                string query = @"SELECT `id`, `sportsman_id`, `coach_id`, `status`, `created_at`, `responded_at` FROM `invitation` WHERE `coach_id` = @id_user OR `sportsman_id`=@id_user;";
+                string query = @"SELECT `id`, `sportsman_id`, sportsman.user_nickname as sportsman_nickname, CONCAT(`sportsman.user_surname`, ' ', `sportsman.user_name`, ' ', `sportsman.user_fathername`) AS `sportsman_fullname`, 
+                                                `coach_id`, coach.user_nickname as coach_nickname, CONCAT(`coach.user_surname`, ' ', `coach.user_name`, ' ', `coach.user_fathername`) AS `coach_fullname`, 
+                                                `status`, `created_at`, `responded_at` FROM `invitation`
+                                    INNER JOIN user sportsman ON sportsman.user_id = sportsman_id  
+                                    INNER JOIN user coach ON coach.user_id = coach_id 
+                                    WHERE `coach_id` = @id_user OR `sportsman_id`=@id_user;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.Add("@id_user", MySqlDbType.UInt64).Value = id_user;
                     var reader = await command.ExecuteReaderAsync();
                     while(await reader.ReadAsync())
                     {
-                        Invitation invite = new Invitation
+                        Invite invite = new Invite
                         {
                             id = reader.GetUInt64("id"),
                             sportsman_id = reader.GetUInt64("sportsman_id"),
+                            sportsman_nickname = reader.GetString("sportsman_nickname"),
+                            sportsman_fullname = reader.GetString("sportsman_fullname"),
                             coach_id = reader.GetUInt64("coach_id"),
+                            coach_nickname = reader.GetString("coach_nickname"),
+                            coach_fullname = reader.GetString("coach_fullname"),
                             status = reader.GetByte("status"),
                             created_at = reader.GetDateTime("created_at"),
                             responded_at = reader.IsDBNull("responded_at") ? null : reader.GetDateTime("responded_at")
